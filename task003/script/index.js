@@ -3,20 +3,39 @@
 var defaultFolderPath = '/';
 var defaultFilePath = '默认分类';
 var defaultFolderNode = document.getElementById('taskByClassMain');
-var defaultFileParentNode = document.querySelector('#taskByClassMain .default .folderContent');
+var defaultFileParentNode; //该节点是动态创建的，需要在创建时赋值
 var topFolders, currentFolderPath = defaultFolderPath, currentFilePath = defaultFilePath;
 var currentLayer = 0, currentFolderNode = defaultFolderNode, currentFileParentNode = defaultFileParentNode;
+var currentTasksFile;  //当前添加任务时的对应的文件，必须选定，为空时弹出提示
 var classList = document.getElementById('taskByClassMain');
 var taskList = document.getElementById('tasksListContent');
 var indexedDB = window.indexedDB || window.msIndexedDB || window.webkitIndexedDb || window.mozIndexedDB;
 var request, database, pathStore, fileStore;
+var initDBFlag = false; //表示是否刚对数据库进行初始化，用于判断是否需要添加默认目录
 function initDB(resolve) {
-    request = indexedDB.open('plan');
+    request = indexedDB.open('plana');
     request.onerror = function(event) {
         console.log('open failed: ' + event.target.errorCode);
     };
     request.onsuccess = function(event) {
         database = event.target.result;
+        if(initDBFlag) {
+            initDBFlag = false;
+            var request = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '/', content:[{name: '默认分类', type: 1}]})
+            request.onerror = function(event) {
+                console.log('初始化初始目录失败')
+            }
+            request.onsuccess = function(event) {
+                console.log('初始化初始目录成功')
+            }
+            var defaultRequest = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '默认分类', content: []});
+            defaultRequest.onerror = function(event) {
+                console.log('初始化默认目录失败');
+            }
+            defaultRequest.onsuccess = function(event) {
+                console.log('初始化默认目录成功');
+            }
+        }
         console.log('open successed');
         console.log('DB version: ', database.version);
         resolve();
@@ -24,12 +43,17 @@ function initDB(resolve) {
     request.onupgradeneeded = function(event) {
         console.log('onupgradeneeded');
         database = event.target.result;
-        pathStore = database.createObjectStore('path', { keyPath: 'path'});
-        pathStore.createIndex('path', 'path', {unique: true});
-        pathStore.createIndex('content', 'content', {unique: false});
-        fileStore = database.createObjectStore('file', {keyPath: 'fileName'});
-        fileStore.createIndex('fileName', 'fileName', {unique: true});
-        fileStore.createIndex('taskInfo', 'taskInfo', {unique: false});
+        if(!database.objectStoreNames.contains('path')) {
+            initDBFlag = true;
+            pathStore = database.createObjectStore('path', { keyPath: 'path'});
+            pathStore.createIndex('path', 'path', {unique: true});
+            pathStore.createIndex('content', 'content', {unique: false});
+        }
+        if(!database.objectStoreNames.contains('file')) {
+            fileStore = database.createObjectStore('file', {keyPath: 'fileName'});
+            fileStore.createIndex('fileName', 'fileName', {unique: true});
+            fileStore.createIndex('taskInfo', 'taskInfo', {unique: false});
+        }
     }
 }
 function createClassList(parentPath, fileName, layer=0) {
@@ -68,6 +92,8 @@ function createClassList(parentPath, fileName, layer=0) {
         if(fullPath == '默认分类') {
             ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${contentCount})</span></div>
                     <div class="folderContent"></div>`;
+            defaultFileParentNode = document.querySelector('#taskByClassMain .default .folderContent');
+            currentFileParentNode = defaultFileParentNode;
         } else {
             ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${contentCount})</span><img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></div>
                     <div class="folderContent"></div>`;
@@ -206,13 +232,14 @@ function addFile(targetPath, fileName) {
     }
     childEle.innerHTML = fileName + "<img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
     console.log(currentFolderNode);
-    currentFolderNode.appendChild(childEle);
+    currentFileParentNode.appendChild(childEle);
     var filePath;
     if(!targetPath || targetPath == '/') {
         targetPath = '默认分类';
     }
     filePath = targetPath + '/' + fileName;
     console.log('targetPath: ' + targetPath);
+    console.log('filePath: ', filePath);
     var pathStore = database.transaction('path', 'readwrite').objectStore('path');
     var getRequest = pathStore.get(targetPath);
     getRequest.onerror = function(event) {
@@ -467,7 +494,17 @@ function folderClick(event) {
     } else {
         document.getElementById('addClass').removeAttribute('disabled');
     }
+    if(currentFolderPath == '/') {
+        currentFilePath = '默认分类';
+        currentFileParentNode = defaultFileParentNode;
+    } else {
+        currentFilePath = currentFolderPath;
+        currentFileParentNode = currentFolderNode;
+    }
     console.log('currentFolderPath: ', currentFolderPath);
+    console.log('currentFolderNode: ', currentFolderNode);
+    console.log('currentFilePath: ', currentFilePath);
+    console.log('currentFileParentNode: ', defaultFileParentNode);
 }
 
 function showTaskContent(event) {
@@ -532,7 +569,7 @@ function init() {
     document.querySelector('#addFile').addEventListener('click', function(event) {
         var fileName = prompt('input fileName');
         if(fileName) {
-            addFile(currentFolderPath, fileName);
+            addFile(currentFilePath, fileName);
         }
     })
     document.querySelector('#tasksOp button').addEventListener('click', function() {
