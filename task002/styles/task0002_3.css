@@ -1,0 +1,9 @@
+#img-cycle {width:600px; height:auto; margin:0 auto; position:relative;}
+img {width:100%; height:auto; display:none;}
+img.imgShow {display:block;}
+
+#img-nav {position:absolute; right:20px; bottom:10px;}
+span {display:inline-block; width:10px; height:10px; border-radius:5px; background-color:#ccc;}
+#img-nav span+span {margin-left:20px;}
+#img-nav span.imgShow {background-color:#999; box-shadow: #999 0 0 5px 2px;}
+#img-nav span:hover {background-color:#999; box-shadow: #999 0 0 5px 2px;}

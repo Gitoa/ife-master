@@ -1,0 +1,36 @@
+* {padding:0; margin:0; box-sizing:border-box;}
+body {background-color:#ccc;}
+a {color:#fff;}
+h1 {font-size:16px; color:#a5c;}
+h2 {font-size:12px; color:#666;}
+p {font-size:14px; text-indent:2em;}
+ul li {list-style:none;}
+.clearfix::after {content:'.'; height:0; visibility:hidden; display:block; clear:both;}
+#header {width:100%; height:80px; background-color:#a5f; position:relative;}
+#header img {position:absolute; right:10px; bottom:0;}
+#header_content {position:relative; width:980px; background-color:inherit; margin:0 auto; height:100%; z-index:1;}
+#header_content ul{position:absolute; right:0; bottom:5px;}
+#header_content ul li{float:left; margin-left:10px; font-size:14px;}
+#content {width:980px; margin:10px auto; color:#000;}
+#article {float:left; width:700px; margin-right:10px; height:auto;}
+#article>div {position:relative; margin-bottom:5px; width:100%; height:300px; background-color:#fff; padding:20px 10px;}
+#article .article_info {position:absolute; right:10px; bottom:5px;}
+#article .article_info span {display:inline-block;}
+#article .article_info .author_name {margin-right:5px;}
+#article .article_info .article_date {margin-left:5px;}
+.tag {position:absolute; width:40px; height:60px; color:#fff; left:-40px; top:20px;}
+.tag .tag_date {background-color:#a5f; height:30px; text-align:center; line-height:30px;}
+.tag .tag_type {background-color:#c1d; height:30px; text-align:center; line-height:30px;}
+#aside {width:270px; float:left;}
+#aside>div {margin-bottom:10px;}
+#search {width:100%; height:80px; background-color:#fff; overflow:hidden;}
+#search>div {height:40px; width: 200px; margin:20px auto; border:solid 1px #ccc;}
+#nav_list a {display:inline-block; height:40px; width:100%; border-left:solid 2px #a7c; margin-bottom:1px; padding:10px 5px; color:#ccc; background-color:#fff; vertical-align:center;}
+#nav_list a:hover {border-left:solid rgb(136, 22, 111) 2px;}
+#calendar {height:200px; background-color:#fff;}
+#show_tags {height:150px; background-color:#fff;}
+#nav{width:700px; text-align:center; margin-top:10px;}
+#nav span {min-width:20px; vertical-align:middle; font-size:12px; display:inline-block; padding:5px 10px; margin-left:5px; color:black; height:30px; background-color:#fff;}
+#nav span:first-child {margin-left:0;}
+#nav span.currentPage {color:white !important; background-color:#a5c !important;}
+#nav span:hover {color:#333; background-color:#999;}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+    <head>
+        <title>to-do</title>
+        <meta charset='utf-8'>
+        <link href='style/index.css' type='text/css' rel='stylesheet'>
+    </head>
+    <body>
+        <div id='header'>
+            <div id='header_content'>
+                <h1>GTD Tools</h1>
+            </div>
+        </div>
+        <div id='main'>
+            <div id='taskList'>
+                <div id='taskListMain'>
+                    <div id='allTask'>
+                        <div class='folderInfo'><span class='folderImg closed'></span><span class='folderName'>所有任务 (0)</span></div>
+                        <div id='allTaskMain'>
+                            <ul></ul>
+                        </div>
+                    </div>
+                    <div id='taskByClass' class='folder open'>
+                        <div class='folderInfo'><span class='folderImg open'></span><span class='folderName'>分类列表</span></div>
+                        <div id='taskByClassMain' class='folderContent'>
+                        </div>
+                    </div>
+                </div>
+                <div id='taskListOp'>
+                    <button id='addClass'>新增分类</button>
+                    <button id='addFile'>新增文件</button>
+                </div>
+            </div>
+            <div id='tasks'>
+                <div id='tasksMain'>
+                    <div id='tasksNav'>
+                        <span id='showAll' class='show'>所有</span><span id='showUndo'>未完成</span><span id='showDone'>已完成</span>
+                    </div>
+                    <div id='tasksListContent'>
+                    </div>
+                </div>
+                <div id='tasksOp'>
+                    <button>新增任务</button>
+                </div>
+            </div>
+            <div id='taskContent'>
+                <div id='taskHeader'>
+                    <span id='taskName'>to-do 6</span>
+                    <span id='taskOp'>
+                        <img src='img/-ionicons-svg-md-checkmark-circle-outline.svg' id='checkmark'>
+                        <img src='img/-ionicons-svg-md-create.svg' id='create'>
+                    </span>
+                </div>
+                <div id='taskInfo'>
+                    任务日期:<span id='taskDate'></span>
+                </div>
+                <div id='taskMain'>任务内容</div>
+            </div>
+        </div>
+        <div id='footer'></div>
+        <script src='script/index.js'></script>
+    </body>
+</html>

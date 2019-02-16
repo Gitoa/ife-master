@@ -1,0 +1,7 @@
+.contain {overflow:hidden; width:400px; height:300px; margin:100px auto; background-color:#333333; border-radius:8px;  box-shadow:0 0 0 8px #ccc;}
+.box {width:100px; height: 100px; margin:100px auto; background-color:#eee; border-radius:8px; box-shadow:0 0 5px 2px #ccc;}
+.item {display:inline-block; width:30px; height:30px;  border-radius:30px; background-color:#555;}
+.box {display:flex; flex-direction:row; justify-content:space-between;}
+.item {flex: 0 0 auto;}
+.item:nth-child(2) {align-self:center;}
+.item:nth-child(3) {align-self:flex-end;}

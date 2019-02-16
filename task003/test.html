@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <title>test</title>
+        <meta charset='utf-8'>
+        <style>
+            div {height:20px;}
+            span {display:inline-block;}
+            .folderImg {width:20px; height:20px; background-color:#aaa;}
+            .folderImg + span {height:20px; background-color:#ccc; min-width:20px;  vertical-align:top;}
+        </style>
+    </head>
+    <body>
+        <div>
+            <span class='folderImg'></span><span>a </span>
+        </div>
+        <script>
+            window.onload = function() {
+                console.log(document.querySelector('span *'));
+            }
+        </script>
+    </body>
+</html>

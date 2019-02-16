@@ -1,0 +1,31 @@
+* {margin:0; padding:0; box-sizing:border-box;}
+body {width:1200px; margin:0 auto;}
+ul li {list-style:none;}
+#header {position:relative; background-color:#59c;}
+#header_content {position:relative; width:980px; margin:0 auto; height:80px; background-color:#59c; z-index:1;}
+#header_nav {position:absolute; bottom:5px; right:0;}
+#header_nav li {float:left; font-size:14px; margin-left:28px;}
+a {color:#fff;}
+#github_icon {position:absolute; right:10px; bottom:0;}
+#img_bg {position:relative; padding:0 110px; width:1200px; height:526px; background-image:url(../img/banner-bg.jpg); background-size:100% 100%;}
+#text {color:#fff; position:absolute; width: 250px; padding:10px 10px 30px 10px; right:110px; bottom:0; background: linear-gradient(rgba(221, 221, 221, 0.5), rgba(221, 221, 221, 0.3) 75%, rgba(221, 221, 221, 0));}
+#text #text_title {overflow:hidden;}
+#text #text_title h1 {font-size:14px; margin-bottom:12px; float:right;}
+#text p {line-height:150%; font-size:12px;}
+#img_nav {width:100%; height:500px; padding:10px 110px 0 110px; background-color:#ddd; overflow:hidden;}
+#img_nav_list {overflow:hidden;}
+#img_nav_list div {box-sizing:content-box; float:left; width:300px; background-color:#fff; margin-right:10px; padding:10px 10px 500px 10px; margin-bottom:-500px;}
+#img_nav_list div img{width:300px; height:180px;}
+#img_nav_list div:nth-child(3) {margin-right:0;}
+#self_intro {height:400px; padding-top:10px;}
+#self_intro #img_head {margin:-60px auto 50px auto; width:160px; height:160px; border-radius:80px; background-image:url(../img/head.jpg); background-size:100% 100%;}
+#self_intro h1 {text-align:center; font:20px Century black;}
+#self_intro p {width:600px; margin:0 auto; font-size:14px; color:black;}
+#footer {width:1200px; background-color:black; color:#fff; font-size:14px;}
+#footer #footer_nav {text-align:center; height:30px; border-bottom:solid 1px #555; padding-top:5px;}
+#footer #footer_nav ul{display:inline-block;}
+#footer #footer_nav ul li {float:left; width:50px; margin-left:10px;}
+#footer #footer_nav_list {width:980px; margin:0 auto; padding-top:20px; height:300px;}
+#footer #footer_nav_list div {float:left; width:190px; margin-right:5px;}
+#footer #footer_nav_list div p {margin-bottom:20px;}
+#footer #footer_nav_list div:nth-child(5) {margin-left:0;}

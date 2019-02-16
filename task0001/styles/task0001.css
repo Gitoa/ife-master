@@ -1,0 +1,13 @@
+h1 {color:blue;}
+h2 {font-size:14px; text-decoration:line-through;}
+p {font-size:12px; color:yellow; background-color:black; text-indent:2em;}
+img {border: solid red 2px;}
+ul {text-align: center;}
+#center1 {width:960px; height:100px; background-color:red; margin:0 auto;}
+#center2 {width:960px; height:100px; background-color:red; position:relative; left:50%; margin-left:-480px;}
+div.radius {width:100px;}
+div.width {height:1px; background-color:black; margin:0 5px;}
+div.radius1 {height:1px; margin:0 3px; border-left:2px solid black; border-right:2px solid black;}
+div.radius2 {height:1px; margin:0 2px; border-left:1px solid black; border-right:1px solid black;}
+div.radius3 {height:2px; margin:0 1px; border-left:1px solid black; border-right:1px solid black;}
+div.content {height:50px; border-left:1px solid black; border-right:1px solid black;}

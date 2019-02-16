@@ -1,0 +1,17 @@
+* {margin:0; padding:0;}
+#middle {margin:0 50px; background-color:red; height:50px;}
+#left {position:absolute; height:50px; left:0; top:0; width:50px; background-color:blue;}
+#right {position:absolute; height:50px; right:0; top:0; width:50px; background-color:yellow;}
+
+#ex1 {margin:20px 50px; height:50px;}
+#ex1 div {float:left;}
+#ex1 .middle {width:100%; background-color:red; height:50px;}
+#ex1 .left {background-color:blue; width:50px; height:50px; position:relative; margin-left:-100%; left:-50px;}
+#ex1 .right {background-color:yellow; width:50px; height:50px; position:relative; margin-left:-50px; left:50px;}
+
+#ex2 {width:100%; height:50px;}
+#ex2>div {float:left; height:50px;}
+#ex2 .middle{width:100%; background-color:red;}
+#ex2 .main{margin:0 50px; height:50px;}
+#ex2 .left{width:50px; background-color:yellow; margin-left:-100%;}
+#ex2 .right{width:50px; margin-left:-50px; background-color:blue;}

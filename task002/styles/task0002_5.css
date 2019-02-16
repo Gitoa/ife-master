@@ -1,0 +1,9 @@
+* {box-sizing: border-box;}
+#container {position:relative; width:600px;}
+.clearfix:after {content: '.'; height:0; visibility:hidden; display:block; clear:both;}
+#box1, #box2 {width: 200px; height:700px; border:solid 1px #333; background-color:#fff; float:left; margin:20px 50px;}
+.item {width:200px; height:50px; background-color:#f00; border:solid 1px #222;}
+.itemCenter {width:5px; height:5px; margin:22px auto; background-color:#fff;}
+
+.dragging * {pointer-events: none;}
+.dragging .onMove {pointer-events:auto;}

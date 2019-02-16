@@ -1,0 +1,12 @@
+* {margin:0; padding:0;}
+div {height:50px;}
+#div-a {width:50px; background-color:red; float:left;}
+#div-b {background-color:yellow;}
+#div-c {background-color:blue;} 
+
+#div-a2 {width:50px; background-color:red; position:absolute;}
+#div-b2 {background-color:yellow; margin-left:50px;}
+#div-c2 {background-color:blue; margin-bottom:20px;}
+
+#div-a3 {width:50px; background-color:red; display:inline-block;}
+#div-b3 {width:calc(100% - 50px); background-color:yellow; display:inline-block;}

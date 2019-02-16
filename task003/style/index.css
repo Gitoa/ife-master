@@ -1,0 +1,55 @@
+* {margin:0; padding:0; box-sizing:border-box;}
+span {display:inline-block; vertical-align:bottom;}
+li {list-style:none;}
+html, body {height:100%; background-color:#ccc;}
+#header {width:100%; height:80px; background-color:#bbb; color:#555; overflow:hidden;}
+#header h1 {height:40px; margin:20px 10px;}
+
+#main {width:100%; height:calc(100% - 80px); min-height:500px; min-width:700px; font-size:12px;}
+#main>div {float:left;}
+
+#taskList {height:100%; width:200px; background-color:#eee; margin-right:2px;}
+#taskListMain {height:calc(100% - 40px); width:200px; padding-top:20px; padding-left:10px; border-bottom:solid 2px #999;}
+#taskByClass {margin-left:-10px; padding-left:10px; height:calc(100% - 35px);}
+#taskByClassMain {width:200px; margin-left:-10px; padding-left:15px;}
+#allTask {margin-bottom:15px;}
+#allTask>.folderInfo {margin-left:-10px; padding-left:10px; width:200px;}
+span.folderImg {width:20px; height:20px;}
+span.folderImg.closed {background-image:url(../img/-ionicons-svg-md-arrow-dropright.svg); background-size:100% 100%;}
+span.folderImg.open {background-image:url(../img/-ionicons-svg-md-arrow-dropdown.svg);}
+.folderContent {width:200px; margin-top:5px;}
+.folderInfo {width:200px; position:relative;}
+img.delete_button {height:20px; width:20px; display:none; position:absolute; left:175px;}
+.folderInfo:hover img.delete_button {display:inline;}
+.task:hover img.delete_button {display:inline;}
+#taskByClass>.folderInfo {width:200px; margin-left:-10px; padding-left:10px;}
+#taskByClassMain>div {margin-top:10px;}
+#taskListOp {padding:10px;}
+.folderContent>* {margin-top:10px;}
+div.task {padding-left:7px; width:200px; height:20px; line-height:20px; vertical-align:top;}
+span.folderImg + span {height:20px; vertical-align:top; line-height:20px;}
+.folder {width:200px;}
+div.folder.closed .folderContent {display:none;}
+
+.task:hover, .folderInfo:hover {background-color:#ccc;}
+
+#tasks {height:100%; width:200px; background-color:#fff; margin-right:2px;}
+#tasksMain {height:calc(100% - 40px); border-bottom:solid 2px #999;}
+#tasksNav {padding:10px 0; background-color:#eee; height:40px;}
+#tasksNav span {margin-left:10px; padding:0 10px;}
+#tasksNav span.show {background-color:#fff;}
+#tasksListContent {height:calc(100% - 40px);}
+.tasksByDate {width:200px; padding-left:20px;}
+.tasksByDate .date {width:200px; height:20px; line-height:20px; margin-left:-20px; padding-left:20px; background-color:#ccc;}
+.singleTask {width:200px; height:20px; line-height:20px; margin-left:-20px; padding-left:30px;}
+.singleTask.done {background-color:#eee;}
+#tasksOp {padding:10px;}
+
+#taskContent {width:calc(100% - 404px); height:100%;}
+#taskHeader {width:100%; height:60px; position:relative; background-color:#eee; padding:15px 0;}
+#taskName {font-size:20px; margin-left:20px;}
+#taskOp {width:80px; position:absolute; right:10px; height:30px;}
+#taskOp img {width:25px; margin-left:10px;}
+#taskInfo {width:100%; margin-top:1px; background-color:#fff; font-size:18px; height:60px; padding:15px 20px;}
+#taskMain {width:100%; background-color:#fff; margin-top:1px; height:calc(100% - 122px); padding:20px; font-size:15px;}
+

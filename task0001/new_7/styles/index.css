@@ -1,0 +1,35 @@
+* {padding:0; margin:0; box-sizing:border-box; color:#fff;}
+#header {width:1200px; height:80px; margin:0 auto; position:relative; background-color:#51c;}
+#header #header_main {width:980px; margin:0 auto; position:relative; height:80px;}
+#header #header_main ul {position:absolute; right:0; bottom:5px;}
+#header #header_main ul li {float:left; font-size:14px; margin-left:28px; color:#fff; list-style:none;}
+#header img {position:absolute; right:0; bottom:0;}
+
+#container {width:1200px; margin:0 auto;}
+#img-bg {width:1200px; height:550px; position:relative; padding:0 110px; background-image:url(../img/banner-bg.jpg); background-size:cover;}
+#bg-text {width:200px; position:absolute; padding:10px 10px 30px 10px; right:110px; bottom:0;}
+#bg-text h2 {font-size:14px; margin-bottom:12px; width:100%; text-align:right;}
+#bg-text p {font-size:12px; line-height:150%;}
+
+#img-nav {height:500px; width:1200px; background-color:#ccc; padding:10px 110px;}
+.img-article {height:100%;}
+.nav-contain {overflow:hidden; height:auto;}
+.nav-contain>div {float:left; width:320px; background-color:#fff; padding:10px; padding-bottom:500px; margin-bottom:-500px; margin-left:10px;}
+.nav-contain>div:nth-child(1) {margin-left:0;}
+.img-article img {width:300px; height:180px;}
+.article {padding:15px 30px 15px 30px; color:#000; font-size:12px; line-height:170%; text-indent:2em;}
+
+#self-intro {width:1200px; height:500px; padding:10px 110px; margin:0 auto; background-color:#fff; color:#000;}
+#head-icon {width:160px; height:160px; border-radius:80px; background-image:url(../img/head.jpg); background-size:100% 100%; margin:-40px auto 50px auto; display:block;}
+#intro-text {width:600px; margin:0 auto;}
+#intro-text h2 {width:100%; text-align:center; font:20px Century; color:#000;}
+#intro-text p {width:100%; text-indent:2em; font-size:14px; color:#000; margin-top:20px;}
+
+#footer {width:1200px; height:400px; margin:0 auto; background-color:#000;}
+#footer-nav {text-align:center; width:100%; padding:0 110px; border-bottom:solid #ccc 1px;}
+#footer-nav a {width:50px; color:#fff;}
+#footer-nav a+a {margin-left:20px;}
+#footer-nav-list {width:980px; margin:20px auto;}
+#footer-nav-list ul {width:190px; float:left;}
+#footer-nav-list ul+ul {margin-left:7px;}
+#footer-nav-list ul li {list-style:none;}

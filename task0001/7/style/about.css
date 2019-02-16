@@ -1,0 +1,19 @@
+* {padding:0; margin:0; box-sizing:border-box;}
+body {background-color:#ccc;}
+a {color:#fff;}
+#header {width:100%; height:80px; position:relative; background-color:#62c;}
+#header #header_content {width:980px; height:80px; margin:0 auto; background-color:#62c; z-index:1; position:relative;}
+#header_content div {position:absolute; right:0; bottom:5px;}
+#header_content div a {font-size:14px; margin-left:28px;}
+#icon-github {position:absolute; right:10px; bottom:0;}
+
+#container {margin:80px 0; width:100%; height:auto;}
+#content {width:980px; margin:0 auto; background-color:#fff; padding:5px;}
+#content>div {width:100%; height:auto; overflow:hidden;}
+#content>div>img {display:block; width:80px; height:80px; border-radius:40px; border:solid 3px #ccc; margin:0 auto;}
+#content #name {margin-top:-55px;}
+#content #name img {width:100px; height:100px; border-radius:50px; border:solid 5px #ccc;}
+#content>div>div:nth-child(2) {float:left; margin-left:30%; width:10%;}
+#content>div>div:nth-child(3) {float:left; margin-left:10%; padding:10px 0 10px 100px; width:300px; border-left:solid #ccc 2px;}
+#content #edu .time {border:solid 2px #ccc; margin-left:-120px; margin-right:100px; background-color:#fff;}
+#content #intern .time {border:solid 2px #ccc; margin-left:-120px; margin-right:100px; background-color:#fff;}
