@@ -16,22 +16,26 @@ var initDBFlag = false; //表示是否刚对数据库进行初始化，用于判
 var editingFlag = false;  //表示是否正在进行编辑操作
 var addNewTask = false;
 function initDB(resolve) {
-    request = indexedDB.open('plana');
+    console.log('here')
+    var request = indexedDB.open('plana');
     request.onerror = function(event) {
         console.log('open failed: ' + event.target.errorCode);
     };
     request.onsuccess = function(event) {
+        console.log('open successed');
         database = event.target.result;
         if(initDBFlag) {
             initDBFlag = false;
-            var request = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '/', content:[{name: '默认分类', type: 1}]})
+            //  初始化，添加跟目录‘/’
+            var request = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '/', content:[{name: '默认分类', type: 1}], tasksNum: 0})
             request.onerror = function(event) {
                 console.log('初始化初始目录失败')
             }
             request.onsuccess = function(event) {
                 console.log('初始化初始目录成功')
             }
-            var defaultRequest = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '默认分类', content: []});
+            //  添加默认分类目录
+            var defaultRequest = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '默认分类', content: [], tasksNum: 0});
             defaultRequest.onerror = function(event) {
                 console.log('初始化默认目录失败');
             }
@@ -41,7 +45,7 @@ function initDB(resolve) {
         }
         console.log('open successed');
         console.log('DB version: ', database.version);
-        resolve();
+        //resolve();
     }
     request.onupgradeneeded = function(event) {
         console.log('onupgradeneeded');
@@ -51,6 +55,7 @@ function initDB(resolve) {
             pathStore = database.createObjectStore('path', { keyPath: 'path'});
             pathStore.createIndex('path', 'path', {unique: true});
             pathStore.createIndex('content', 'content', {unique: false});
+            pathStore.createIndex('tasksNum', 'tasksNum', {unique: false});
         }
         if(!database.objectStoreNames.contains('file')) {
             fileStore = database.createObjectStore('file', {keyPath: 'fileName'});
@@ -59,6 +64,7 @@ function initDB(resolve) {
         }
     }
 }
+
 function createClassList(parentPath, fileName, layer=0) {
     var fullPath;
     if(layer == 0) {
@@ -69,6 +75,7 @@ function createClassList(parentPath, fileName, layer=0) {
     //className是目录名称，根据目录名称创建目录
     var ele = document.createElement('div');
     var contentCount = 0;
+    let undoTasksNum = 0;
     if(fullPath == '默认分类') {
         ele.setAttribute('class', 'folder closed default');
     } else {
@@ -91,14 +98,15 @@ function createClassList(parentPath, fileName, layer=0) {
         var result = event.target.result;
         if(result) {
             contentCount = result.content.length;
+            undoTasksNum = result.tasksNum;
         } 
         if(fullPath == '默认分类') {
-            ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${contentCount})</span></div>
+            ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${undoTasksNum})</span></div>
                     <div class="folderContent"></div>`;
             defaultFileParentNode = document.querySelector('#taskByClassMain .default .folderContent');
             currentFileParentNode = defaultFileParentNode;
         } else {
-            ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${contentCount})</span><img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></div>
+            ele.innerHTML = `<div class='folderInfo' style='margin-left:-${paddingLeft}; padding-left:${paddingLeft};'><span class="folderImg closed"></span><span class="folderName">${fileName} (${undoTasksNum})</span><img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></div>
                     <div class="folderContent"></div>`;
         }
         if(contentCount == 0) {
@@ -110,13 +118,22 @@ function createClassList(parentPath, fileName, layer=0) {
             if(item.type == 1) {
                 childEle = createClassList(fullPath, item.name, layer+1);      
             } else {
-                childEle.setAttribute('class', 'task');
-                if(layer == 0) {
-                    childEle.setAttribute('style','margin-left:-15px; ' + 'padding-left:30px;');
-                } else {
-                    childEle.setAttribute('style','margin-left:-' + (layer*10+15)+ 'px; ' + 'padding-left:' + (layer*10+30) +'px;');
+                let getRequest = database.transaction('path').objectStore('path').get(fullPath +'/' + item.name);
+                getRequest.onerror = function() {
+                    console.log('get failed');
                 }
-                childEle.innerHTML = item.name + "<img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
+                getRequest.onsuccess = function(event) {
+                    let result = event.target.result;
+                    let tasksNum = result.tasksNum;
+                    childEle.setAttribute('class', 'task');
+                    if(layer == 0) {
+                        childEle.setAttribute('style','margin-left:-15px; ' + 'padding-left:30px;');
+                    } else {
+                        childEle.setAttribute('style','margin-left:-' + (layer*10+15)+ 'px; ' + 'padding-left:' + (layer*10+30) +'px;');
+                    }
+                    childEle.innerHTML = item.name + ` (${tasksNum})` + " <img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
+                }
+                
             }
             contentList.appendChild(childEle);
         }
@@ -150,8 +167,10 @@ function deleteFile(path) {
     request.onsuccess = function(event) {
         var result = event.target.result;
         var fileList = result.content;
-        for(let file of fileList) {
-            deleteFile(path + '/' + file.name);
+        if(Array.isArray(fileList)) {
+            for(let file of fileList) {
+                deleteFile(path + '/' + file.name);
+            }
         }
         var delRequest = database.transaction('path', 'readwrite').objectStore('path').delete(path);
         delRequest.onsuccess = function(event) {
@@ -161,7 +180,7 @@ function deleteFile(path) {
     //将文件从父目录中删除
 }
 function addTopFolder(folderName) {
-    var addRequest = database.transaction('path', 'readwrite').objectStore('path').add({path: folderName, content: []});
+    var addRequest = database.transaction('path', 'readwrite').objectStore('path').add({path: folderName, content: [], tasksNum: 0});
     addRequest.onerror = function(event) {
         console.log('add failed: ' + event.target.errorCode)
     }
@@ -199,24 +218,25 @@ function addFolder(targetPath, folderName) {
     }
     getRequest.onsuccess = function(event) {
         var updatedContent = event.target.result.content;
+        var tasksNum = event.target.result.tasksNum;
         for(let item of updatedContent) {
             if(item.name == folderName) {
                 console.log('folder already exists')
                 return;
             }
         }
-        updatedContent.push({name:folderName, type:1});
+        updatedContent.push({name:folderName, type:1, tasksNum: 0});
         updatedContent.sort(function(a, b) {
             return b.type - a.type;
         })
-        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: targetPath, content:updatedContent});
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: targetPath, content:updatedContent, tasksNum:tasksNum});
         putRequest.onerror = function(event) {
             console.log('update failed: ' + event.target.errorCode);
         }
         putRequest.onsuccess = function(event) {
             console.log('update success');
         }
-        var addRequest = database.transaction('path', 'readwrite').objectStore('path').add({path: folderPath, content: []});
+        var addRequest = database.transaction('path', 'readwrite').objectStore('path').add({path: folderPath, content: [], tasksNum: 0});
         addRequest.onerror = function(event) {
             console.log('add failed: ' + event.target.errorCode)
         }
@@ -234,7 +254,7 @@ function addFile(targetPath, fileName) {
     } else {
         childEle.setAttribute('style','margin-left:-' + (currentLayer*10+15)+ 'px; ' + 'padding-left:' + (currentLayer*10+30) +'px;');
     }
-    childEle.innerHTML = fileName + "<img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
+    childEle.innerHTML = fileName + " (0) <img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
     console.log(currentFolderNode);
     currentFileParentNode.appendChild(childEle);
     var filePath;
@@ -252,24 +272,25 @@ function addFile(targetPath, fileName) {
     getRequest.onsuccess = function(event) {
         console.log('get successed');
         var updatedContent = event.target.result.content;
+        var tasksNum = event.target.result.tasksNum;
         for(let item of updatedContent) {
             if(item.name == fileName) {
                 console.log('file already exists');
                 return;
             }
         }
-        updatedContent.push({name:fileName, type:0});
+        updatedContent.push({name:fileName, type:0, tasksNum: 0});
         updatedContent.sort(function(a, b) {
             return b.type - a.type;
         })
-        var putRequest = pathStore.put({path:targetPath, content:updatedContent});
+        var putRequest = pathStore.put({path:targetPath, content:updatedContent, tasksNum:tasksNum});
         putRequest.onerror = function(event) {
             console.log('put failed');
         }
         putRequest.onsuccess = function(event) {
             console.log('put successed');
         }
-        var addRequest = pathStore.add({path:filePath, content:[]});
+        var addRequest = pathStore.add({path:filePath, content:[], tasksNum: 0});
         addRequest.onerror = function(event) {
             console.log('add failed')
         }
@@ -280,7 +301,7 @@ function addFile(targetPath, fileName) {
 }
 function showTasks(taskEle) {
     //taskEle是class='task'的div元素
-    var taskName = taskEle.firstChild.data;
+    var taskName = taskEle.firstChild.data.split(' ')[0];
     var fullFilePath = currentFolderPath + '/' + taskName;
     console.log(fullFilePath);
     taskList.innerHTML = '';
@@ -396,38 +417,46 @@ function folderClick(event) {
     var currentFolderInfo;
     if(target.classList.contains('delete_button')){
         if(target.parentNode.classList.contains('task')) {
-            console.log('delete task');
+            console.log('delete file');
             var taskName = target.parentNode.firstChild.data;
             var path = getTaskPath(target);
+            var delTasksNum, newTasksNum;
             var parentFolderPath = path.substring(0, path.lastIndexOf('/'));
-            console.log(parentFolderPath);
-            console.log(path);
-            var delRequest = database.transaction('path', 'readwrite').objectStore('path').delete(path);
-            delRequest.onerror = function(event) {
-                console.log('delete failed: ' + event.target.errorCode);
+            var getRequest = database.transaction('path').objectStore('path').get(path);
+            getRequest.onerror = function(){
+                console.log('get failed');
             }
-            delRequest.onsuccess = function(event) {
-                // 从父文件夹content中删掉该文件
-                var getRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
-                getRequest.onerror = function(event) {
-                    console.log('get failed: ' + event.target.errorCode);
+            getRequest.onsuccess = function(event) {
+                delTasksNum = event.target.result.tasksNum;
+                var delRequest = database.transaction('path', 'readwrite').objectStore('path').delete(path);
+                delRequest.onerror = function(event) {
+                    console.log('delete failed: ' + event.target.errorCode);
                 }
-                getRequest.onsuccess = function(event) {
-                    var result = event.target.result;
-                    var updatedContent = result.content;
-                    var indexOfItem = -1;
-                    for(let i=0; i<updatedContent.length; i++) {
-                        if(updatedContent[i].name == taskName) {
-                            indexOfItem = i;
+                delRequest.onsuccess = function(event) {
+                    // 从父文件夹content中删掉该文件
+                    var getRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
+                    getRequest.onerror = function(event) {
+                        console.log('get failed: ' + event.target.errorCode);
+                    }
+                    getRequest.onsuccess = function(event) {
+                        var result = event.target.result;
+                        newTasksNum = result.tasksNum;
+                        var updatedContent = result.content;
+                        var indexOfItem = -1;
+                        for(let i=0; i<updatedContent.length; i++) {
+                            if(updatedContent[i].name == taskName) {
+                                indexOfItem = i;
+                            }
+                        }
+                        updatedContent.splice(indexOfItem, 1);
+                        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: parentFolderPath, content: updatedContent, tasksNum: newTasksNum});
+                        putRequest.onsuccess = function(event) {
+                            console.log('delete file successed');
                         }
                     }
-                    updatedContent.splice(indexOfItem, 1);
-                    var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: parentFolderPath, content: updatedContent});
-                    putRequest.onsuccess = function(event) {
-                        console.log('delete task successed');
-                    }
+                    target.parentNode.parentNode.removeChild(target.parentNode);
+                    decreaseTasksNum(delTasksNum, parentFolderPath, target.parentNode.parentNode.querySelector('.folderInfo'))
                 }
-                target.parentNode.parentNode.removeChild(target.parentNode);
             }
             return;
         }
@@ -439,8 +468,8 @@ function folderClick(event) {
         var parentFolder;
         var parentFolderPath;
         var parentFolderNode;
+        var delTasksNum;
         console.log('fullpath: ', fullPath);
-        deleteFile(fullPath);
         if(folderInfo.parentNode.parentNode.id.toLowerCase() == 'taskbyclassmain') {
             parentFolder = '/';
             parentFolderPath = '/';
@@ -452,29 +481,39 @@ function folderClick(event) {
             console.log(parentFolder);
             console.log(parentFolderPath);
         }
-        var request = database.transaction('path').objectStore('path').get(parentFolderPath);
-        request.onerror = function(event) {
-            console.log('1 failed');
+        var getRequest = database.transaction('path').objectStore('path').get(fullPath);
+        getRequest.onerror = function() {
+            console.log('get failed');
         }
-        request.onsuccess = function(event) {
-            var result = event.target.result;
-            var updatedContent = result.content;
-            console.log(updatedContent);
-            var index = -1;
-            for(let i=0; i<updatedContent.length; i++) {
-                if(updatedContent[i].name == fileName) {
-                    index = i;
-                    break;
+        getRequest.onsuccess = function(event) {
+            delTasksNum = event.target.result.tasksNum;
+            deleteFile(fullPath);
+            var request = database.transaction('path').objectStore('path').get(parentFolderPath);
+            request.onerror = function(event) {
+                console.log('1 failed');
+            }
+            request.onsuccess = function(event) {
+                var result = event.target.result;
+                var updatedContent = result.content;
+                var newTasksNum = result.tasksNum;
+                console.log(updatedContent);
+                var index = -1;
+                for(let i=0; i<updatedContent.length; i++) {
+                    if(updatedContent[i].name == fileName) {
+                        index = i;
+                        break;
+                    }
                 }
+                if(index != -1) {
+                    updatedContent.splice(index, 1);
+                }
+                var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: parentFolderPath, content: updatedContent, tasksNum: newTasksNum});
+                putRequest.onsuccess = function(event) {
+                    console.log('update success');
+                }
+                parentFolderNode.removeChild(folderInfo.parentNode);
+                decreaseTasksNum(delTasksNum, parentFolderPath, parentFolderNode.parentNode.querySelector('.folderInfo'));
             }
-            if(index != -1) {
-                updatedContent.splice(index, 1);
-            }
-            var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: parentFolderPath, content: updatedContent});
-            putRequest.onsuccess = function(event) {
-                console.log('update success');
-            }
-            parentFolderNode.removeChild(folderInfo.parentNode);
         }
         return;
     }
@@ -556,7 +595,7 @@ function showTaskContent(event) {
     }
     document.getElementById('taskName').innerHTML = event.target.innerHTML;
     document.getElementById('taskDate').value = (' ' + event.target.parentNode.getAttribute('date'));
-    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + event.target.innerHTML;
+    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0] + '/' + event.target.innerHTML;
     console.log(fullTaskPath);
     var request = database.transaction('path').objectStore('path').get(fullTaskPath);
     request.onerror = function(event) {
@@ -568,9 +607,11 @@ function showTaskContent(event) {
 }
 
 function checkTask() {
-    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data;
+    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0];
     var taskName = document.querySelector('#taskName').innerHTML;
     var fileContent;
+    var fileTasksNum;
+    //该请求级别为文件，即任务上一级，对文件的content和tasksNum进行更新
     var getRequest = database.transaction('path').objectStore('path').get(filePath);
     var newTaskContent;
     getRequest.onerror = function() {
@@ -579,19 +620,25 @@ function checkTask() {
     getRequest.onsuccess = function(event) {
         var result = event.target.result;
         fileContent = result.content;
+        fileTasksNum = result.tasksNum - 1;
         for(task of fileContent) {
             if(task.name == taskName) {
                 task.done = true;
             }
         }
-        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent});
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent, tasksNum:fileTasksNum});
         putRequest.onerror = function() {
             console.log('check failed');
         }
-        putRequest.onsuccess = function() {
+        putRequest.onsuccess = function() {  //更新文件的taskNum成功，再对页面上显示的进行更新
             console.log('check successed');
+            let currentHTML = currentFolderOrFile.innerHTML.split(' ');
+            let newNum = parseInt(currentHTML[1][1], 10) - 1;
+            currentHTML[1] = '(' + newNum + ')';
+            currentFolderOrFile.innerHTML = currentHTML.join(' ');
         }
     }
+    //该请求针对任务，将任务状态标记为已完成，将任务数量减一
     var getTask = database.transaction('path').objectStore('path').get(filePath + '/' + taskName);
     getTask.onerror = function() {
         console.log('getTask failed');
@@ -600,7 +647,7 @@ function checkTask() {
         var result = event.target.result;
         newTaskContent = result.content;
         newTaskContent.done = true;
-        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: filePath + '/' + taskName, content: newTaskContent});
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: filePath + '/' + taskName, content: newTaskContent, tasksNum: 0});
         putRequest.onerror = function() {
             console.log('put task failed');
         }
@@ -613,6 +660,7 @@ function checkTask() {
             document.getElementById('cancel').setAttribute('disabled', true);
             currentTasksFile.classList.remove('undo');
             currentTasksFile.classList.add('done');
+            decreaseTasksNum(1, currentFolderPath, currentFolderOrFile.parentNode.parentNode.querySelector('.folderInfo'));
         }
     }
 }
@@ -626,14 +674,14 @@ function clearTaskContent() {
     document.getElementById('cancel').setAttribute('disabled', true);
     document.getElementById('taskDate').readOnly = true;
     document.getElementById('taskTextContent').readOnly = true;
-    addNewTaks = false;
+    addNewTask = false;
     currentTasksFile = null;
     editingFlag = false;
 }
 
 function addTask(task) {  //创建新任务，进入任务编辑模式，编辑完毕后submit按钮提交任务
-    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + task);
-    console.log(currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + task);
+    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0] + '/' + task);
+    console.log(currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0] + '/' + task);
     getRequest.onerror = function(event) {
         console.log('get failed: ' + event.target.errorCode)
     }
@@ -660,7 +708,7 @@ function submitTask() {  //将当前任务进行提交
     var taskContent = document.querySelector('#taskTextContent').value;
     var datePattern = /\d{4}-\d{2}-\d{2}/g;
     console.log(taskDate);
-    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data;
+    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0];
     if(!datePattern.test(taskDate)) {
         alert('日期格式错误');
         return;
@@ -670,21 +718,23 @@ function submitTask() {  //将当前任务进行提交
         taskDate: taskDate,
         taskContent: taskContent,
         done: false,
-        taskName: taskName
+        taskName: taskName,
+        tasksNum: 1
     };
-    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + taskName;
+    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0]+ '/' + taskName;
     //  在文件的content中添加任务(仅当是添加时，若为修改状态则不添加)
-    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data);
+    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0]);
     getRequest.onerror =function(event) {
         console.log('get failed');
     }
     getRequest.onsuccess = function(event) {  //需要将路径加到文件的content中，创建对应路径的数据
         var result = event.target.result;
         var fileContent = result.content;
+        var newTasksNum = result.tasksNum;
         console.log('addNewTask: ', addNewTask);
-        if(addNewTask) {
-            addNewTask = false;
-            fileContent.push({name:taskName, done:false, date:taskDate});
+        if(addNewTask) {  //说明当前提交为新建任务，需要更新上一级文件的content和tasksNum
+            fileContent.push({name:taskName, done:false, date:taskDate, tasksNum: 1});
+            newTasksNum ++;
             fileContent.sort(function(a, b) {
                 if(a.date > b.date) {
                     return -1;
@@ -693,19 +743,23 @@ function submitTask() {  //将当前任务进行提交
                 }
             })
         }
-        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent});
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent, tasksNum:newTasksNum});
         putRequest.onerror = function(event) {
             console.log('update failed: ' + event.target.errorCode);
         }
         putRequest.onsuccess = function(event) {
             console.log('add task to file content successed');
         }
-        var addRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:fullTaskPath, content:newContent});
+        var addRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:fullTaskPath, content:newContent, tasksNum:1});
         addRequest.onerror = function() {
             console.log('add task failed');
         }
         addRequest.onsuccess = function() {
             console.log('add task successed');
+            if(addNewTask) {    //对路径上的各个文件和文件夹的tasksNum进行更新
+                addTasksNum();
+                addNewTask = false;
+            }
             document.querySelector('#submit').setAttribute('disabled', true);
             document.querySelector('#cancel').setAttribute('disabled', true);
         }
@@ -714,6 +768,79 @@ function submitTask() {  //将当前任务进行提交
     document.getElementById('taskTextContent').readOnly = true;
     editingFlag = false;
 }
+
+function addTasksNum() {  //对当前文件以及到根目录为止路径上的各个文件夹的tasksNum进行加一更新,针对添加任务的情况
+    console.log('currentFolderPath: ', currentFolderPath);
+    console.log('currentFileOrFolder: ', currentFolderOrFile);
+    var fullPath = currentFolderPath + '/' + currentFolderOrFile.innerHTML.split(' ')[0];
+    do {
+        let getRequest = database.transaction('path').objectStore('path').get(fullPath);
+        getRequest.onerror = function() {
+            console.log('get failed');
+        }
+        getRequest.onsuccess = function(event) {
+            let result = event.target.result;
+            let newContent = result.content;
+            let newTasksNum = result.tasksNum + 1;
+            let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: fullPath, content: newContent, tasksNum: newTasksNum});
+            putRequest.onerror = function() {
+                console.log('put failed');
+            }
+            putRequest.onsuccess = function(event) {
+
+            }
+        }
+        let i = fullPath.lastIndexOf('/');
+        fullPath = fullPath.substring(0, i);
+    } while(fullPath)
+    //再对页面进行更新
+    let currentInfo = currentFolderOrFile.parentNode.parentNode.querySelector('.folderInfo');
+    console.log(currentInfo);
+    do {
+        let currentNameNode = currentInfo.querySelector('.folderName');
+        let nameHTML = currentNameNode.innerHTML.split(' ');
+        console.log(nameHTML);
+        let newNum = parseInt(nameHTML[1][1]) + 1;
+        nameHTML[1] = '(' + newNum + ')';
+        currentNameNode.innerHTML = nameHTML.join(' ');
+        currentInfo = currentInfo.parentNode.parentNode.parentNode.querySelector('.folderInfo');
+    }while(currentInfo.parentNode.id.toLowerCase() != 'taskbyclass')
+}
+
+function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值，对fullPath路径上的各个文件/文件夹进行减少tasksNum的操作，再追踪currentInfo对页面更新，用于删除和check
+    console.log('fullPath: ', fullPath);
+    console.log('num: ', num);
+    do {
+        let getRequest = database.transaction('path').objectStore('path').get(fullPath);
+        getRequest.onerror = function() {
+            console.log('get failed');
+        }
+        getRequest.onsuccess = function(event) {
+            let result = event.target.result;
+            let newContent = result.content;
+            let newTasksNum = result.tasksNum - num;
+            let putRequest = database.transaction('path', 'readWrite').objectStore('path').put({path: fullPath, content: newContent, tasksNum: newTasksNum});
+            putRequest.onerror = function() {
+                console.log('put failed');
+            }
+            putRequest.onsuccess = function(event) {
+
+            }
+        }
+        let i = fullPath.lastIndexOf('/');
+        fullPath = fullPath.substring(0, i);
+    } while(fullPath)
+    //再对页面进行更新
+    do {
+        let currentNameNode = currentInfo.querySelector('.folderName');
+        let nameHTML = currentNameNode.innerHTML.split(' ');
+        let newNum = parseInt(nameHTML[1][1]) - num;
+        nameHTML[1] = '(' + newNum + ')';
+        currentNameNode.innetHTML = nameHTML.join(' ');
+        currentInfo = currentInfo.parentNode.parentNode.parentNode.querySelector('.folderInfo');
+    }while(currentInfo.parentNode.id.toLowerCase != 'taskbyclass')
+}
+
 function init() {
     console.log('init', database);
     var getRequest = database.transaction('path').objectStore('path').get('/');
@@ -778,7 +905,7 @@ function init() {
     document.querySelector('#tasksOp button').addEventListener('click', function() {
         console.log('add task');
         if(currentFolderOrFile && currentFolderOrFile.classList.contains('task')) {
-            console.log(currentFolderOrFile.firstChild.data);
+            console.log(currentFolderOrFile.firstChild.data.split(' ')[0]);
             var taskName = prompt('input task name');
             if(taskName) {
                 addTask(taskName);
@@ -817,6 +944,7 @@ function init() {
 }
 
 window.onload = function() {
+    console.log('load');
     let promise = new Promise(function(resolve, reject) {
         initDB(resolve);
     })
