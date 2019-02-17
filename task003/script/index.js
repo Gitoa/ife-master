@@ -6,12 +6,15 @@ var defaultFolderNode = document.getElementById('taskByClassMain');
 var defaultFileParentNode; //该节点是动态创建的，需要在创建时赋值
 var topFolders, currentFolderPath = defaultFolderPath, currentFilePath = defaultFilePath;
 var currentLayer = 0, currentFolderNode = defaultFolderNode, currentFileParentNode = defaultFileParentNode;
-var currentTasksFile;  //当前添加任务时的对应的文件，必须选定，为空时弹出提示
+var currentTasksFile;  //当前正在操作的task文件
+var preFolderOrFile, currentFolderOrFile;  //表示当前正在访问的文件，添加class，突出显示
 var classList = document.getElementById('taskByClassMain');
 var taskList = document.getElementById('tasksListContent');
 var indexedDB = window.indexedDB || window.msIndexedDB || window.webkitIndexedDb || window.mozIndexedDB;
 var request, database, pathStore, fileStore;
 var initDBFlag = false; //表示是否刚对数据库进行初始化，用于判断是否需要添加默认目录
+var editingFlag = false;  //表示是否正在进行编辑操作
+var addNewTask = false;
 function initDB(resolve) {
     request = indexedDB.open('plana');
     request.onerror = function(event) {
@@ -190,7 +193,8 @@ function addFolder(targetPath, folderName) {
     }
 
     console.log('targetPath: ' + targetPath);
-    var getRequest = database.transaction('path').objectStore('path').get(targetPath);        getRequest.onerror = function(event) {
+    var getRequest = database.transaction('path').objectStore('path').get(targetPath);        
+    getRequest.onerror = function(event) {
         console.log('get failed: ' + event.target.errorCode)
     }
     getRequest.onsuccess = function(event) {
@@ -287,12 +291,20 @@ function showTasks(taskEle) {
     request.onsuccess = function(event) {
         var result = event.target.result;
         console.log('taskList: ', result);
+        for(let task of result.content) {
+            showTask(task);
+        }
     } 
 }
 
 function showTask(task) {
     var singleTask = document.createElement('div');
-    singleTask.setAttribute('class', 'singleTask ' + task.done);
+    singleTask.setAttribute('class', 'singleTask ');
+    if(task.done) {
+        singleTask.classList.add('done');
+    } else {
+        singleTask.classList.add('undo');
+    }
     singleTask.innerHTML = task.name;
     var tasksByDate = taskList.querySelector('div[date="' + task.date +'"]');
     if(tasksByDate) {
@@ -301,10 +313,17 @@ function showTask(task) {
         tasksByDate = document.createElement('div');
         tasksByDate.setAttribute('class', 'tasksByDate');
         tasksByDate.setAttribute('date',task.date);
-        tasksByDate.innerHTML = `<div class='date'>${task.date.substring(0,4)}-${task.date.substring(4,6)}-${task.date.substring(6,8)}`;
+        tasksByDate.innerHTML = `<div class='date'>${task.date}</div>`;
         tasksByDate.appendChild(singleTask);
         taskList.appendChild(tasksByDate);
     }
+}
+
+function clearTasks() {
+    addNewTask = false;
+    currentTasksFile = null;
+    editingFlag = false;
+    document.getElementById('tasksListContent').innerHTML = '';
 }
 
 function showAllTask(event) {
@@ -370,11 +389,13 @@ function getTaskPath(target) {
 }
 
 function folderClick(event) {
+    clearTaskContent();
+    clearTasks();
     var target = event.target;
     var parent, imgChild;
     var currentFolderInfo;
     if(target.classList.contains('delete_button')){
-        if(target.parentNode.getAttribute('class').toLowerCase() == 'task') {
+        if(target.parentNode.classList.contains('task')) {
             console.log('delete task');
             var taskName = target.parentNode.firstChild.data;
             var path = getTaskPath(target);
@@ -457,30 +478,48 @@ function folderClick(event) {
         }
         return;
     }
-    if(target.classList.contains('folderInfo')) {
-        parent = target.parentNode;
-        imgChild = target.querySelector('.folderImg');
-        imgChild.classList.toggle('open');
-        imgChild.classList.toggle('closed');
-        parent.classList.toggle('open');
-        parent.classList.toggle('closed');
-        currentFolderInfo = target;
-    } else if(target.classList.contains('folderImg') || target.classList.contains('folderName')) {
-        parent = target.parentNode.parentNode;
-        imgChild = parent.getElementsByClassName('folderImg')[0];
-        imgChild.classList.toggle('open');
-        imgChild.classList.toggle('closed');
-        parent.classList.toggle('open');
-        parent.classList.toggle('closed');
-        currentFolderInfo = target.parentNode;
-    } else if(target.classList.contains('task')) {
+    if(target.classList.contains('task')) {
         currentFolderInfo = target.parentNode.parentNode.querySelector('.folderInfo');
         [currentFolderPath, currentFolderNode, currentLayer] = getFolderPath(currentFolderInfo);
+        if(!currentFolderOrFile) {
+            currentFolderOrFile = target;
+            currentFolderOrFile.classList.add('currentFolderOrFile');
+        } else {
+            currentFolderOrFile.classList.remove('currentFolderOrFile');
+            currentFolderOrFile = target;
+            currentFolderOrFile.classList.add('currentFolderOrFile');
+        }
         showTasks(target);
-    } else if(target.classList.contains('folderContent')) {
-        currentFolderInfo = target.parentNode.querySelector('.folderInfo');
-    } else if(target.classList.contains('folder')) {
-        currentFolderInfo = target.querySelector('.folderInfo');
+    } else {
+        if(target.classList.contains('folderInfo')) {
+            parent = target.parentNode;
+            imgChild = target.querySelector('.folderImg');
+            imgChild.classList.toggle('open');
+            imgChild.classList.toggle('closed');
+            parent.classList.toggle('open');
+            parent.classList.toggle('closed');
+            currentFolderInfo = target;
+        } else if(target.classList.contains('folderImg') || target.classList.contains('folderName')) {
+            parent = target.parentNode.parentNode;
+            imgChild = parent.getElementsByClassName('folderImg')[0];
+            imgChild.classList.toggle('open');
+            imgChild.classList.toggle('closed');
+            parent.classList.toggle('open');
+            parent.classList.toggle('closed');
+            currentFolderInfo = target.parentNode;
+        } else if(target.classList.contains('folderContent')) {
+            currentFolderInfo = target.parentNode.querySelector('.folderInfo');
+        } else if(target.classList.contains('folder')) {
+            currentFolderInfo = target.querySelector('.folderInfo');
+        }
+        if(!currentFolderOrFile) {
+            currentFolderOrFile = currentFolderInfo;
+            currentFolderOrFile.classList.add('currentFolderOrFile');
+        } else {
+            currentFolderOrFile.classList.remove('currentFolderOrFile');
+            currentFolderOrFile = currentFolderInfo;
+            currentFolderOrFile.classList.add('currentFolderOrFile');
+        }
     }
     if(currentFolderInfo && currentFolderInfo.parentNode.id.toLowerCase() == 'taskbyclass') {
         currentFolderPath = defaultFolderPath;
@@ -501,6 +540,7 @@ function folderClick(event) {
         currentFilePath = currentFolderPath;
         currentFileParentNode = currentFolderNode;
     }
+    console.log('currentFolderInfo: ', currentFolderInfo);
     console.log('currentFolderPath: ', currentFolderPath);
     console.log('currentFolderNode: ', currentFolderNode);
     console.log('currentFilePath: ', currentFilePath);
@@ -508,10 +548,172 @@ function folderClick(event) {
 }
 
 function showTaskContent(event) {
+    currentTasksFile = event.target;
+    if(event.target.classList.contains('undo')) {
+        document.querySelector('#taskOp').setAttribute('style', 'display:inline-block');
+    } else {
+        document.querySelector('#taskOp').removeAttribute('style');
+    }
     document.getElementById('taskName').innerHTML = event.target.innerHTML;
-    document.getElementById('taskDate').innerHTML = (' ' + event.target.parentNode.getAttribute('date'));
+    document.getElementById('taskDate').value = (' ' + event.target.parentNode.getAttribute('date'));
+    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + event.target.innerHTML;
+    console.log(fullTaskPath);
+    var request = database.transaction('path').objectStore('path').get(fullTaskPath);
+    request.onerror = function(event) {
+        console.log(' failed');
+    }
+    request.onsuccess = function(event) {
+        document.getElementById('taskTextContent').value = event.target.result.content.taskContent;
+    }
 }
 
+function checkTask() {
+    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data;
+    var taskName = document.querySelector('#taskName').innerHTML;
+    var fileContent;
+    var getRequest = database.transaction('path').objectStore('path').get(filePath);
+    var newTaskContent;
+    getRequest.onerror = function() {
+        console.log('get failed');
+    }
+    getRequest.onsuccess = function(event) {
+        var result = event.target.result;
+        fileContent = result.content;
+        for(task of fileContent) {
+            if(task.name == taskName) {
+                task.done = true;
+            }
+        }
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent});
+        putRequest.onerror = function() {
+            console.log('check failed');
+        }
+        putRequest.onsuccess = function() {
+            console.log('check successed');
+        }
+    }
+    var getTask = database.transaction('path').objectStore('path').get(filePath + '/' + taskName);
+    getTask.onerror = function() {
+        console.log('getTask failed');
+    }
+    getTask.onsuccess = function(event) {
+        var result = event.target.result;
+        newTaskContent = result.content;
+        newTaskContent.done = true;
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: filePath + '/' + taskName, content: newTaskContent});
+        putRequest.onerror = function() {
+            console.log('put task failed');
+        }
+        putRequest.onsuccess = function(event) {
+            console.log('put task successed');
+            document.getElementById('taskOp').setAttribute('style', 'display:none');
+            document.getElementById('taskDate').readOnly = true;
+            document.getElementById('taskTextContent').readOnly = true;
+            document.getElementById('submit').setAttribute('disabled', true);
+            document.getElementById('cancel').setAttribute('disabled', true);
+            currentTasksFile.classList.remove('undo');
+            currentTasksFile.classList.add('done');
+        }
+    }
+}
+
+function clearTaskContent() {
+    document.querySelector('#taskOp').removeAttribute('style');
+    document.getElementById('taskName').innerHTML = '';
+    document.getElementById('taskDate').value = '';
+    document.getElementById('taskTextContent').value = '';
+    document.getElementById('submit').setAttribute('disabled', true);
+    document.getElementById('cancel').setAttribute('disabled', true);
+    document.getElementById('taskDate').readOnly = true;
+    document.getElementById('taskTextContent').readOnly = true;
+    addNewTaks = false;
+    currentTasksFile = null;
+    editingFlag = false;
+}
+
+function addTask(task) {  //创建新任务，进入任务编辑模式，编辑完毕后submit按钮提交任务
+    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + task);
+    console.log(currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + task);
+    getRequest.onerror = function(event) {
+        console.log('get failed: ' + event.target.errorCode)
+    }
+    getRequest.onsuccess = function(event) {
+        if(!event.target.result) {  //说明路径不存在，可以添加，进入编辑模式
+            document.querySelector('#taskName').innerHTML = task;
+            document.querySelector('#taskInfo input').readOnly = false;
+            document.querySelector('#taskMain textarea').readOnly = false;
+            document.querySelector('#taskInfo input').focus();
+            editingFlag = true;
+            document.querySelector('#submit').removeAttribute('disabled');
+            document.querySelector('#cancel').removeAttribute('disabled');
+            addNewTask = true;
+        } else {  //路径已存在，不可添加
+            alert('存在同名任务，请重新操作');
+        }
+    }
+}
+
+function submitTask() {  //将当前任务进行提交
+    //获得任务名称，创建路径，获得日期和内容，还有完成信息，保存在content中，加入数据库
+    var taskName = document.querySelector('#taskName').innerHTML;
+    var taskDate = document.querySelector('#taskDate').value;
+    var taskContent = document.querySelector('#taskTextContent').value;
+    var datePattern = /\d{4}-\d{2}-\d{2}/g;
+    console.log(taskDate);
+    var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data;
+    if(!datePattern.test(taskDate)) {
+        alert('日期格式错误');
+        return;
+    }
+    var newContent = {
+        type: 2,
+        taskDate: taskDate,
+        taskContent: taskContent,
+        done: false,
+        taskName: taskName
+    };
+    var fullTaskPath = currentFilePath + '/' + currentFolderOrFile.firstChild.data + '/' + taskName;
+    //  在文件的content中添加任务(仅当是添加时，若为修改状态则不添加)
+    var getRequest = database.transaction('path').objectStore('path').get(currentFilePath + '/' + currentFolderOrFile.firstChild.data);
+    getRequest.onerror =function(event) {
+        console.log('get failed');
+    }
+    getRequest.onsuccess = function(event) {  //需要将路径加到文件的content中，创建对应路径的数据
+        var result = event.target.result;
+        var fileContent = result.content;
+        console.log('addNewTask: ', addNewTask);
+        if(addNewTask) {
+            addNewTask = false;
+            fileContent.push({name:taskName, done:false, date:taskDate});
+            fileContent.sort(function(a, b) {
+                if(a.date > b.date) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            })
+        }
+        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent});
+        putRequest.onerror = function(event) {
+            console.log('update failed: ' + event.target.errorCode);
+        }
+        putRequest.onsuccess = function(event) {
+            console.log('add task to file content successed');
+        }
+        var addRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:fullTaskPath, content:newContent});
+        addRequest.onerror = function() {
+            console.log('add task failed');
+        }
+        addRequest.onsuccess = function() {
+            console.log('add task successed');
+            document.querySelector('#submit').setAttribute('disabled', true);
+            document.querySelector('#cancel').setAttribute('disabled', true);
+        }
+    }
+    document.getElementById('taskDate').readOnly = true;
+    document.getElementById('taskTextContent').readOnly = true;
+    editingFlag = false;
+}
 function init() {
     console.log('init', database);
     var getRequest = database.transaction('path').objectStore('path').get('/');
@@ -555,7 +757,8 @@ function init() {
             showDoneTask(event);
         }
     });
-    document.getElementById('tasksListContent').addEventListener('click', function(event) {
+    document.getElementById('tasksListContent').addEventListener('click', function(event) {  //对tasksListContent中的内容进行事件委托
+        clearTaskContent();
         if(event.target.classList.contains('singleTask')) {
             showTaskContent(event);
         }
@@ -565,15 +768,51 @@ function init() {
         if(folderName) {
             addFolder(currentFolderPath, folderName);
         }
-    })
+    });
     document.querySelector('#addFile').addEventListener('click', function(event) {
         var fileName = prompt('input fileName');
         if(fileName) {
             addFile(currentFilePath, fileName);
         }
-    })
+    });
     document.querySelector('#tasksOp button').addEventListener('click', function() {
         console.log('add task');
+        if(currentFolderOrFile && currentFolderOrFile.classList.contains('task')) {
+            console.log(currentFolderOrFile.firstChild.data);
+            var taskName = prompt('input task name');
+            if(taskName) {
+                addTask(taskName);
+            }
+        } else {
+            alert('请选择文件');
+        }
+    });
+    document.querySelector('#submit').addEventListener('click', function() {
+        alert('修改完提交');
+        submitTask();
+    });
+    document.querySelector('#cancel').addEventListener('click', function() {
+        clearTaskContent();
+        alert('取消操作');
+    });
+    document.getElementById('checkmark').addEventListener('click', function(event) {
+        if(editingFlag) {
+            alert('editing');
+            return;
+        }
+        if(confirm('check?')) {
+            //将当前任务标记为已完成
+            checkTask();
+        } else {
+            //取消操作
+        }
+    });
+    document.getElementById('editTask').addEventListener('click', function(event) {
+        document.getElementById('taskDate').readOnly = false;
+        document.getElementById('taskTextContent').readOnly = false;
+        document.getElementById('submit').removeAttribute('disabled');
+        document.getElementById('cancel').removeAttribute('disabled');
+        editingFlag = true;
     })
 }
 

@@ -24,12 +24,13 @@ img.delete_button {height:20px; width:20px; display:none; position:absolute; lef
 .task:hover img.delete_button {display:inline;}
 #taskByClass>.folderInfo {width:200px; margin-left:-10px; padding-left:10px;}
 #taskByClassMain>div {margin-top:10px;}
-#taskListOp {padding:10px;}
+#taskListOp {padding:10px; text-align:center;}
 .folderContent>* {margin-top:10px;}
 div.task {padding-left:7px; width:200px; height:20px; line-height:20px; vertical-align:top;}
 span.folderImg + span {height:20px; vertical-align:top; line-height:20px;}
 .folder {width:200px;}
 div.folder.closed .folderContent {display:none;}
+.currentFolderOrFile {background-color:#bbb;}
 
 .task:hover, .folderInfo:hover {background-color:#ccc;}
 
@@ -43,13 +44,19 @@ div.folder.closed .folderContent {display:none;}
 .tasksByDate .date {width:200px; height:20px; line-height:20px; margin-left:-20px; padding-left:20px; background-color:#ccc;}
 .singleTask {width:200px; height:20px; line-height:20px; margin-left:-20px; padding-left:30px;}
 .singleTask.done {background-color:#eee;}
-#tasksOp {padding:10px;}
+#tasksOp {padding:10px; text-align:center;}
 
 #taskContent {width:calc(100% - 404px); height:100%;}
 #taskHeader {width:100%; height:60px; position:relative; background-color:#eee; padding:15px 0;}
 #taskName {font-size:20px; margin-left:20px;}
-#taskOp {width:80px; position:absolute; right:10px; height:30px;}
+#taskOp {width:80px; position:absolute; right:10px; height:30px; display:none;}
 #taskOp img {width:25px; margin-left:10px;}
+#taskOp img:hover {width:23px;}
 #taskInfo {width:100%; margin-top:1px; background-color:#fff; font-size:18px; height:60px; padding:15px 20px;}
-#taskMain {width:100%; background-color:#fff; margin-top:1px; height:calc(100% - 122px); padding:20px; font-size:15px;}
+#taskInfo input {font-size:18px; margin-left:10px; text-indent:1em; border:none;}
+#taskMain {width:100%; background-color:#fff; margin-top:1px; height:calc(100% - 162px); font-size:15px; border-bottom:2px solid #999}
+#taskMain textarea {width:100%; height:100%; border:none; padding:20px; font-size:15px;}
+#taskContentOps {padding-top:10px; padding-bottom:10px; background-color:#fff; text-align:center;}
+#taskContentOps button:nth-child(1) {margin-right:10px;}
+
 

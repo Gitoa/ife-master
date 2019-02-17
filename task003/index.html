@@ -48,13 +48,18 @@
                     <span id='taskName'>to-do 6</span>
                     <span id='taskOp'>
                         <img src='img/-ionicons-svg-md-checkmark-circle-outline.svg' id='checkmark'>
-                        <img src='img/-ionicons-svg-md-create.svg' id='create'>
+                        <img src='img/-ionicons-svg-md-create.svg' id='editTask'>
                     </span>
                 </div>
                 <div id='taskInfo'>
-                    任务日期:<span id='taskDate'></span>
+                    任务日期:<input type='text' id='taskDate' placeholder='yyyy-mm-dd' readonly='readonly'>
                 </div>
-                <div id='taskMain'>任务内容</div>
+                <div id='taskMain'>
+                    <textarea id='taskTextContent' readonly='readonly' placeholder='任务内容'></textarea>
+                </div>
+                <div id='taskContentOps'>
+                    <button id='submit' disabled='true'>提交</button><button id='cancel' disabled='true'>取消</button>
+                </div>
             </div>
         </div>
         <div id='footer'></div>
