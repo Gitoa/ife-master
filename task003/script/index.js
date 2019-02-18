@@ -734,6 +734,59 @@ function addTask(task) {  //创建新任务，进入任务编辑模式，编辑�
         }
     }
 }
+function validDate(dateText) {
+    let bMonth = /-((01)|(03)|(05)|(07)|(08)|(10)|(12))-/;
+    let sMonth = /-((04)|(06)|(09)|(11))-/;
+    let bDay = /-((0[1-9])|([12][0-9])|(3[01]))$/;
+    let sDay = /-((0[1-9])|([12][0-9])}|(30))$/;
+    if(/\d{4}-\d{2}-\d{2}/.test(dateText)) {
+        console.log('enter')
+        let yearNum = parseInt(dateText.slice(0, 4), 10);
+        if((yearNum%100==0 && yearNum%400==0) || (yearNum%100!=0 && yearNum%4==0)) {  //闰年的情况
+            console.log('闰年')
+            if(/-02-/.test(dateText)) {
+                console.log('feb')
+                if(/-((0[1-9])|(1[0-9])|(2[0-9])$)/.test(dateText)) {
+                    return true;
+                }
+            } else {
+                if(bMonth.test(dateText)) {  //31天
+                    console.log('big month');
+                    if(bDay.test(dateText)) {
+                        return true;
+                    }
+                } else if(sMonth.test(dateText)) {
+                    console.log('small month');
+                    if(sDay.test(dateText)) {
+                        return true;
+                    }
+                }
+            }
+        } else {
+            console.log('not runnian')
+            if(/-02-/.test(dateText)) {
+                console.log('feb');
+                if(/(-(0[1-9])|(1[0-9])|(2[0-8]))$/.test(dateText)) {
+                    return true;
+                }
+            } else {
+                if(bMonth.test(dateText)) {  //31天
+                    console.log('big month');
+                    if(bDay.test(dateText)) {
+                        return true;
+                    }
+                } else if(sMonth.test(dateText)) {
+                    console.log('small month');
+                    if(sDay.test(dateText)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    console.log('here');
+    return false;
+}
 
 function submitTask() {  //将当前任务进行提交
     //获得任务名称，创建路径，获得日期和内容，还有完成信息，保存在content中，加入数据库
@@ -743,7 +796,7 @@ function submitTask() {  //将当前任务进行提交
     var datePattern = /\d{4}-\d{2}-\d{2}/g;
     console.log(taskDate);
     var filePath = currentFilePath + '/' + currentFolderOrFile.firstChild.data.split(' ')[0];
-    if(!datePattern.test(taskDate)) {
+    if(!validDate(taskDate)) {
         alert('日期格式错误');
         return;
     }
