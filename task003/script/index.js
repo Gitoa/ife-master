@@ -17,7 +17,7 @@ var editingFlag = false;  //表示是否正在进行编辑操作
 var addNewTask = false;
 function initDB(resolve) {
     console.log('here')
-    var request = indexedDB.open('plana');
+    var request = indexedDB.open('pland');
     request.onerror = function(event) {
         console.log('open failed: ' + event.target.errorCode);
     };
@@ -27,11 +27,11 @@ function initDB(resolve) {
         if(initDBFlag) {
             initDBFlag = false;
             //  初始化，添加跟目录‘/’
-            var request = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '/', content:[{name: '默认分类', type: 1}], tasksNum: 0})
-            request.onerror = function(event) {
+            var initRequest = database.transaction(['path'], 'readwrite').objectStore('path').add({path: '/', content:[{name: '默认分类', type: 1}], tasksNum: 0})
+            initRequest.onerror = function(event) {
                 console.log('初始化初始目录失败')
             }
-            request.onsuccess = function(event) {
+            initRequest.onsuccess = function(event) {
                 console.log('初始化初始目录成功')
             }
             //  添加默认分类目录
@@ -45,7 +45,7 @@ function initDB(resolve) {
         }
         console.log('open successed');
         console.log('DB version: ', database.version);
-        //resolve();
+        resolve();
     }
     request.onupgradeneeded = function(event) {
         console.log('onupgradeneeded');
@@ -113,6 +113,7 @@ function createClassList(parentPath, fileName, layer=0) {
             return ele;
         }
         var contentList = ele.getElementsByClassName('folderContent')[0];
+        console.log(fullPath, result.content);
         for(let item of result.content) {
             let childEle = document.createElement('div');
             if(item.type == 1) {
@@ -166,7 +167,7 @@ function deleteFile(path) {
     }
     request.onsuccess = function(event) {
         var result = event.target.result;
-        var fileList = result.content;
+        var fileList = result.content.concat();
         if(Array.isArray(fileList)) {
             for(let file of fileList) {
                 deleteFile(path + '/' + file.name);
@@ -210,14 +211,13 @@ function addFolder(targetPath, folderName) {
     } else {
         folderPath = targetPath + '/' + folderName;
     }
-
     console.log('targetPath: ' + targetPath);
     var getRequest = database.transaction('path').objectStore('path').get(targetPath);        
     getRequest.onerror = function(event) {
         console.log('get failed: ' + event.target.errorCode)
     }
     getRequest.onsuccess = function(event) {
-        var updatedContent = event.target.result.content;
+        var updatedContent = event.target.result.content.concat();
         var tasksNum = event.target.result.tasksNum;
         for(let item of updatedContent) {
             if(item.name == folderName) {
@@ -234,6 +234,7 @@ function addFolder(targetPath, folderName) {
             console.log('update failed: ' + event.target.errorCode);
         }
         putRequest.onsuccess = function(event) {
+            console.log(event);
             console.log('update success');
         }
         var addRequest = database.transaction('path', 'readwrite').objectStore('path').add({path: folderPath, content: [], tasksNum: 0});
@@ -249,14 +250,13 @@ function addFolder(targetPath, folderName) {
 function addFile(targetPath, fileName) {
     let childEle = document.createElement('div');
     childEle.setAttribute('class', 'task');
-    if(currentLayer == 0) {
+    if(currentLayer == 1) {
         childEle.setAttribute('style','margin-left:-15px; ' + 'padding-left:30px;');
     } else {
-        childEle.setAttribute('style','margin-left:-' + (currentLayer*10+15)+ 'px; ' + 'padding-left:' + (currentLayer*10+30) +'px;');
+        childEle.setAttribute('style','margin-left:-' + ((currentLayer-1)*10+15)+ 'px; ' + 'padding-left:' + ((currentLayer-1)*10+30) +'px;');
     }
     childEle.innerHTML = fileName + " (0) <img src='img/-ionicons-svg-md-trash.svg' class='delete_button'></img>";
     console.log(currentFolderNode);
-    currentFileParentNode.appendChild(childEle);
     var filePath;
     if(!targetPath || targetPath == '/') {
         targetPath = '默认分类';
@@ -271,14 +271,15 @@ function addFile(targetPath, fileName) {
     };
     getRequest.onsuccess = function(event) {
         console.log('get successed');
-        var updatedContent = event.target.result.content;
+        var updatedContent = event.target.result.content.concat();
         var tasksNum = event.target.result.tasksNum;
         for(let item of updatedContent) {
             if(item.name == fileName) {
-                console.log('file already exists');
+                alert('file already exists');
                 return;
             }
         }
+        currentFileParentNode.appendChild(childEle);
         updatedContent.push({name:fileName, type:0, tasksNum: 0});
         updatedContent.sort(function(a, b) {
             return b.type - a.type;
@@ -299,11 +300,12 @@ function addFile(targetPath, fileName) {
         }
     }
 }
+
 function showTasks(taskEle) {
     //taskEle是class='task'的div元素
     var taskName = taskEle.firstChild.data.split(' ')[0];
     var fullFilePath = currentFolderPath + '/' + taskName;
-    console.log(fullFilePath);
+    console.log('fullFilePath: ', fullFilePath);
     taskList.innerHTML = '';
     var request = database.transaction('path').objectStore('path').get(fullFilePath);
     request.onerror = function(event) {
@@ -402,8 +404,8 @@ function getFolderPath(target) {
     }
 }
 
-function getTaskPath(target) {
-    var path = target.parentNode.firstChild.data;
+function getFilePath(target) {
+    var path = target.parentNode.innerHTML.split(' ')[0];
     var parentPath = getFolderPath(target.parentNode.parentNode.parentNode.firstChild)[0];
     path = parentPath + '/' + path;
     return path;
@@ -416,18 +418,33 @@ function folderClick(event) {
     var parent, imgChild;
     var currentFolderInfo;
     if(target.classList.contains('delete_button')){
+        clearTasks();
+        clearTaskContent();
         if(target.parentNode.classList.contains('task')) {
             console.log('delete file');
-            var taskName = target.parentNode.firstChild.data;
-            var path = getTaskPath(target);
+            var taskName = target.parentNode.firstChild.data.split(' ')[0];
+            var path = getFilePath(target);
+            console.log('delete file path: ', path);
             var delTasksNum, newTasksNum;
             var parentFolderPath = path.substring(0, path.lastIndexOf('/'));
+            console.log('parentFolderPath', parentFolderPath);
             var getRequest = database.transaction('path').objectStore('path').get(path);
             getRequest.onerror = function(){
                 console.log('get failed');
             }
             getRequest.onsuccess = function(event) {
                 delTasksNum = event.target.result.tasksNum;
+                let delContent = event.target.result.content.concat();
+                for(let task of delContent) {  //需要将文件下所有的任务删除
+                    let taskFullPath = path + '/' + task.name;
+                    let delRequest = database.transaction('path', 'readwrite').objectStore('path').delete(taskFullPath);
+                    delRequest.onerror = function() {
+                        console.log('del task failed');
+                    }
+                    delRequest.onsuccess = function() {
+                        console.log('del task successed');
+                    }
+                }
                 var delRequest = database.transaction('path', 'readwrite').objectStore('path').delete(path);
                 delRequest.onerror = function(event) {
                     console.log('delete failed: ' + event.target.errorCode);
@@ -439,9 +456,10 @@ function folderClick(event) {
                         console.log('get failed: ' + event.target.errorCode);
                     }
                     getRequest.onsuccess = function(event) {
+                        let currentParentFolderPath = parentFolderPath;
                         var result = event.target.result;
                         newTasksNum = result.tasksNum;
-                        var updatedContent = result.content;
+                        var updatedContent = result.content.concat();
                         var indexOfItem = -1;
                         for(let i=0; i<updatedContent.length; i++) {
                             if(updatedContent[i].name == taskName) {
@@ -449,13 +467,25 @@ function folderClick(event) {
                             }
                         }
                         updatedContent.splice(indexOfItem, 1);
-                        var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: parentFolderPath, content: updatedContent, tasksNum: newTasksNum});
+                        console.log('preContent: ', result.content)
+                        console.log('updatedcontent: ', updatedContent);
+                        console.log(parentFolderPath);
+                        let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:parentFolderPath, content:[], tasksNum:50});
                         putRequest.onsuccess = function(event) {
+                            console.log('parentFolderPath: ', parentFolderPath)
+                            let getRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
+                            getRequest.onsuccess = function(event) {
+                                console.log(event.target.result);
+                            }
+                            console.log(event);
                             console.log('delete file successed');
                         }
+                        putRequest.onerror = function() {
+                            console.log('delete failed');
+                        }
                     }
-                    target.parentNode.parentNode.removeChild(target.parentNode);
-                    decreaseTasksNum(delTasksNum, parentFolderPath, target.parentNode.parentNode.querySelector('.folderInfo'))
+                    decreaseTasksNum(delTasksNum, parentFolderPath, target.parentNode.parentNode.parentNode.querySelector('.folderInfo'))
+                    target.parentNode.parentNode.removeChild(target.parentNode);   
                 }
             }
             return;
@@ -494,7 +524,7 @@ function folderClick(event) {
             }
             request.onsuccess = function(event) {
                 var result = event.target.result;
-                var updatedContent = result.content;
+                var updatedContent = result.content.concat();
                 var newTasksNum = result.tasksNum;
                 console.log(updatedContent);
                 var index = -1;
@@ -511,53 +541,57 @@ function folderClick(event) {
                 putRequest.onsuccess = function(event) {
                     console.log('update success');
                 }
-                parentFolderNode.removeChild(folderInfo.parentNode);
+                currentFolderPath = defaultFolderPath;
+                currentFolderNode = defaultFolderNode;
+                currentFileParentNode = defaultFileParentNode;
+                currentFilePath = defaultFilePath;
                 decreaseTasksNum(delTasksNum, parentFolderPath, parentFolderNode.parentNode.querySelector('.folderInfo'));
+                parentFolderNode.removeChild(folderInfo.parentNode); 
             }
         }
-        return;
-    }
-    if(target.classList.contains('task')) {
-        currentFolderInfo = target.parentNode.parentNode.querySelector('.folderInfo');
-        [currentFolderPath, currentFolderNode, currentLayer] = getFolderPath(currentFolderInfo);
-        if(!currentFolderOrFile) {
-            currentFolderOrFile = target;
-            currentFolderOrFile.classList.add('currentFolderOrFile');
-        } else {
-            currentFolderOrFile.classList.remove('currentFolderOrFile');
-            currentFolderOrFile = target;
-            currentFolderOrFile.classList.add('currentFolderOrFile');
-        }
-        showTasks(target);
     } else {
-        if(target.classList.contains('folderInfo')) {
-            parent = target.parentNode;
-            imgChild = target.querySelector('.folderImg');
-            imgChild.classList.toggle('open');
-            imgChild.classList.toggle('closed');
-            parent.classList.toggle('open');
-            parent.classList.toggle('closed');
-            currentFolderInfo = target;
-        } else if(target.classList.contains('folderImg') || target.classList.contains('folderName')) {
-            parent = target.parentNode.parentNode;
-            imgChild = parent.getElementsByClassName('folderImg')[0];
-            imgChild.classList.toggle('open');
-            imgChild.classList.toggle('closed');
-            parent.classList.toggle('open');
-            parent.classList.toggle('closed');
-            currentFolderInfo = target.parentNode;
-        } else if(target.classList.contains('folderContent')) {
-            currentFolderInfo = target.parentNode.querySelector('.folderInfo');
-        } else if(target.classList.contains('folder')) {
-            currentFolderInfo = target.querySelector('.folderInfo');
-        }
-        if(!currentFolderOrFile) {
-            currentFolderOrFile = currentFolderInfo;
-            currentFolderOrFile.classList.add('currentFolderOrFile');
+        if(target.classList.contains('task')) {
+            currentFolderInfo = target.parentNode.parentNode.querySelector('.folderInfo');
+            [currentFolderPath, currentFolderNode, currentLayer] = getFolderPath(currentFolderInfo);
+            if(!currentFolderOrFile) {
+                currentFolderOrFile = target;
+                currentFolderOrFile.classList.add('currentFolderOrFile');
+            } else {
+                currentFolderOrFile.classList.remove('currentFolderOrFile');
+                currentFolderOrFile = target;
+                currentFolderOrFile.classList.add('currentFolderOrFile');
+            }
+            showTasks(target);
         } else {
-            currentFolderOrFile.classList.remove('currentFolderOrFile');
-            currentFolderOrFile = currentFolderInfo;
-            currentFolderOrFile.classList.add('currentFolderOrFile');
+            if(target.classList.contains('folderInfo')) {
+                parent = target.parentNode;
+                imgChild = target.querySelector('.folderImg');
+                imgChild.classList.toggle('open');
+                imgChild.classList.toggle('closed');
+                parent.classList.toggle('open');
+                parent.classList.toggle('closed');
+                currentFolderInfo = target;
+            } else if(target.classList.contains('folderImg') || target.classList.contains('folderName')) {
+                parent = target.parentNode.parentNode;
+                imgChild = parent.getElementsByClassName('folderImg')[0];
+                imgChild.classList.toggle('open');
+                imgChild.classList.toggle('closed');
+                parent.classList.toggle('open');
+                parent.classList.toggle('closed');
+                currentFolderInfo = target.parentNode;
+            } else if(target.classList.contains('folderContent')) {
+                currentFolderInfo = target.parentNode.querySelector('.folderInfo');
+            } else if(target.classList.contains('folder')) {
+                currentFolderInfo = target.querySelector('.folderInfo');
+            }
+            if(!currentFolderOrFile) {
+                currentFolderOrFile = currentFolderInfo;
+                currentFolderOrFile.classList.add('currentFolderOrFile');
+            } else {
+                currentFolderOrFile.classList.remove('currentFolderOrFile');
+                currentFolderOrFile = currentFolderInfo;
+                currentFolderOrFile.classList.add('currentFolderOrFile');
+            }
         }
     }
     if(currentFolderInfo && currentFolderInfo.parentNode.id.toLowerCase() == 'taskbyclass') {
@@ -619,7 +653,7 @@ function checkTask() {
     }
     getRequest.onsuccess = function(event) {
         var result = event.target.result;
-        fileContent = result.content;
+        fileContent = result.content.concat();
         fileTasksNum = result.tasksNum - 1;
         for(task of fileContent) {
             if(task.name == taskName) {
@@ -645,7 +679,7 @@ function checkTask() {
     }
     getTask.onsuccess = function(event) {
         var result = event.target.result;
-        newTaskContent = result.content;
+        newTaskContent = result.content.concat();
         newTaskContent.done = true;
         var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: filePath + '/' + taskName, content: newTaskContent, tasksNum: 0});
         putRequest.onerror = function() {
@@ -688,6 +722,8 @@ function addTask(task) {  //创建新任务，进入任务编辑模式，编辑�
     getRequest.onsuccess = function(event) {
         if(!event.target.result) {  //说明路径不存在，可以添加，进入编辑模式
             document.querySelector('#taskName').innerHTML = task;
+            document.querySelector('#taskDate').value = '';
+            document.querySelector('#taskTextContent').value = '';
             document.querySelector('#taskInfo input').readOnly = false;
             document.querySelector('#taskMain textarea').readOnly = false;
             document.querySelector('#taskInfo input').focus();
@@ -729,12 +765,11 @@ function submitTask() {  //将当前任务进行提交
     }
     getRequest.onsuccess = function(event) {  //需要将路径加到文件的content中，创建对应路径的数据
         var result = event.target.result;
-        var fileContent = result.content;
+        var fileContent = result.content.concat();
         var newTasksNum = result.tasksNum;
         console.log('addNewTask: ', addNewTask);
         if(addNewTask) {  //说明当前提交为新建任务，需要更新上一级文件的content和tasksNum
             fileContent.push({name:taskName, done:false, date:taskDate, tasksNum: 1});
-            newTasksNum ++;
             fileContent.sort(function(a, b) {
                 if(a.date > b.date) {
                     return -1;
@@ -743,6 +778,7 @@ function submitTask() {  //将当前任务进行提交
                 }
             })
         }
+        console.log('newTasksNum: ', newTasksNum);
         var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:filePath, content:fileContent, tasksNum:newTasksNum});
         putRequest.onerror = function(event) {
             console.log('update failed: ' + event.target.errorCode);
@@ -758,6 +794,10 @@ function submitTask() {  //将当前任务进行提交
             console.log('add task successed');
             if(addNewTask) {    //对路径上的各个文件和文件夹的tasksNum进行更新
                 addTasksNum();
+                let fileHTML = currentFolderOrFile.innerHTML.split(' ');
+                let num = parseInt(fileHTML[1][1], 10) + 1;
+                fileHTML[1] = '(' + num + ')';
+                currentFolderOrFile.innerHTML = fileHTML.join(' ');
                 addNewTask = false;
             }
             document.querySelector('#submit').setAttribute('disabled', true);
@@ -774,15 +814,18 @@ function addTasksNum() {  //对当前文件以及到根目录为止路径上的�
     console.log('currentFileOrFolder: ', currentFolderOrFile);
     var fullPath = currentFolderPath + '/' + currentFolderOrFile.innerHTML.split(' ')[0];
     do {
+        console.log('fullPath: ', fullPath);
+        let tmpPath = fullPath;
         let getRequest = database.transaction('path').objectStore('path').get(fullPath);
         getRequest.onerror = function() {
             console.log('get failed');
         }
         getRequest.onsuccess = function(event) {
             let result = event.target.result;
-            let newContent = result.content;
+            let newContent = result.content.concat();
             let newTasksNum = result.tasksNum + 1;
-            let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: fullPath, content: newContent, tasksNum: newTasksNum});
+            console.log('path: ', tmpPath, ' newTasksNum: ', newTasksNum);
+            let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: tmpPath, content: newContent, tasksNum: newTasksNum});
             putRequest.onerror = function() {
                 console.log('put failed');
             }
@@ -811,15 +854,16 @@ function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值
     console.log('fullPath: ', fullPath);
     console.log('num: ', num);
     do {
-        let getRequest = database.transaction('path').objectStore('path').get(fullPath);
+        let tmpPath = fullPath;
+        let getRequest = database.transaction('path').objectStore('path').get(tmpPath);
         getRequest.onerror = function() {
             console.log('get failed');
         }
         getRequest.onsuccess = function(event) {
             let result = event.target.result;
-            let newContent = result.content;
+            let newContent = result.content.concat();
             let newTasksNum = result.tasksNum - num;
-            let putRequest = database.transaction('path', 'readWrite').objectStore('path').put({path: fullPath, content: newContent, tasksNum: newTasksNum});
+            let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: tmpPath, content: newContent, tasksNum: newTasksNum});
             putRequest.onerror = function() {
                 console.log('put failed');
             }
@@ -831,14 +875,15 @@ function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值
         fullPath = fullPath.substring(0, i);
     } while(fullPath)
     //再对页面进行更新
-    do {
+    while(currentInfo.parentNode.id.toLowerCase() != 'taskbyclass') {
+        console.log(currentInfo);
         let currentNameNode = currentInfo.querySelector('.folderName');
         let nameHTML = currentNameNode.innerHTML.split(' ');
         let newNum = parseInt(nameHTML[1][1]) - num;
         nameHTML[1] = '(' + newNum + ')';
         currentNameNode.innetHTML = nameHTML.join(' ');
         currentInfo = currentInfo.parentNode.parentNode.parentNode.querySelector('.folderInfo');
-    }while(currentInfo.parentNode.id.toLowerCase != 'taskbyclass')
+    }
 }
 
 function init() {
@@ -848,7 +893,7 @@ function init() {
         console.log('get failed: ' + event.target.errorCode);
     }
     getRequest.onsuccess = function(event) {
-        topFolders = event.target.result.content;
+        topFolders = event.target.result.content.concat();
         console.log(topFolders);
         for(let topFolder of topFolders) {
             classList.appendChild(createClassList('', topFolder.name, 0));
@@ -897,9 +942,12 @@ function init() {
         }
     });
     document.querySelector('#addFile').addEventListener('click', function(event) {
-        var fileName = prompt('input fileName');
-        if(fileName) {
+        var fileName = prompt('input fileName');  //输入文件名称，判断是否为空，是否包含空格
+        console.log('typeof fileName: ', typeof fileName);
+        if(fileName && fileName.indexOf(' ') == -1) {
             addFile(currentFilePath, fileName);
+        } else {
+            alert('请输入有效的文件名（不包含空格）')
         }
     });
     document.querySelector('#tasksOp button').addEventListener('click', function() {
