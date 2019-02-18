@@ -167,7 +167,7 @@ function deleteFile(path) {
     }
     request.onsuccess = function(event) {
         var result = event.target.result;
-        var fileList = result.content.concat();
+        var fileList = result.content;
         if(Array.isArray(fileList)) {
             for(let file of fileList) {
                 deleteFile(path + '/' + file.name);
@@ -418,8 +418,6 @@ function folderClick(event) {
     var parent, imgChild;
     var currentFolderInfo;
     if(target.classList.contains('delete_button')){
-        clearTasks();
-        clearTaskContent();
         if(target.parentNode.classList.contains('task')) {
             console.log('delete file');
             var taskName = target.parentNode.firstChild.data.split(' ')[0];
@@ -451,14 +449,14 @@ function folderClick(event) {
                 }
                 delRequest.onsuccess = function(event) {
                     // 从父文件夹content中删掉该文件
-                    var getRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
-                    getRequest.onerror = function(event) {
+                    console.log('del sueccess');
+                    var folderGetRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
+                    folderGetRequest.onerror = function(event) {
                         console.log('get failed: ' + event.target.errorCode);
                     }
-                    getRequest.onsuccess = function(event) {
-                        let currentParentFolderPath = parentFolderPath;
+                    folderGetRequest.onsuccess = function(event) {
                         var result = event.target.result;
-                        newTasksNum = result.tasksNum;
+                        newTasksNum = result.tasksNum - delTasksNum;
                         var updatedContent = result.content.concat();
                         var indexOfItem = -1;
                         for(let i=0; i<updatedContent.length; i++) {
@@ -467,26 +465,11 @@ function folderClick(event) {
                             }
                         }
                         updatedContent.splice(indexOfItem, 1);
-                        console.log('preContent: ', result.content)
-                        console.log('updatedcontent: ', updatedContent);
-                        console.log(parentFolderPath);
-                        let putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:parentFolderPath, content:[], tasksNum:50});
-                        putRequest.onsuccess = function(event) {
-                            console.log('parentFolderPath: ', parentFolderPath)
-                            let getRequest = database.transaction('path').objectStore('path').get(parentFolderPath);
-                            getRequest.onsuccess = function(event) {
-                                console.log(event.target.result);
-                            }
-                            console.log(event);
-                            console.log('delete file successed');
-                        }
-                        putRequest.onerror = function() {
-                            console.log('delete failed');
-                        }
+                        updateContentOfPath(parentFolderPath, updatedContent, newTasksNum);
                     }
-                    decreaseTasksNum(delTasksNum, parentFolderPath, target.parentNode.parentNode.parentNode.querySelector('.folderInfo'))
-                    target.parentNode.parentNode.removeChild(target.parentNode);   
                 }
+                decreaseTasksNum(delTasksNum, parentFolderPath, target.parentNode.parentNode.parentNode.querySelector('.folderInfo'))
+                target.parentNode.parentNode.removeChild(target.parentNode);   
             }
             return;
         }
@@ -549,6 +532,8 @@ function folderClick(event) {
                 parentFolderNode.removeChild(folderInfo.parentNode); 
             }
         }
+        clearTasks();
+        clearTaskContent();
     } else {
         if(target.classList.contains('task')) {
             currentFolderInfo = target.parentNode.parentNode.querySelector('.folderInfo');
@@ -673,13 +658,14 @@ function checkTask() {
         }
     }
     //该请求针对任务，将任务状态标记为已完成，将任务数量减一
+    console.log('fullTaskPath: ', filePath + '/' + taskName);
     var getTask = database.transaction('path').objectStore('path').get(filePath + '/' + taskName);
     getTask.onerror = function() {
         console.log('getTask failed');
     }
     getTask.onsuccess = function(event) {
         var result = event.target.result;
-        newTaskContent = result.content.concat();
+        newTaskContent = result.content;
         newTaskContent.done = true;
         var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path: filePath + '/' + taskName, content: newTaskContent, tasksNum: 0});
         putRequest.onerror = function() {
@@ -697,6 +683,18 @@ function checkTask() {
             decreaseTasksNum(1, currentFolderPath, currentFolderOrFile.parentNode.parentNode.querySelector('.folderInfo'));
         }
     }
+}
+
+function updateContentOfPath(path, content, tasksNum) {
+    console.log('update content of: ', path);
+    console.log('content: ', content);
+    var putRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:path, content:content, tasksNum:tasksNum});
+        putRequest.onerror = function() {
+            console.log('failed');
+        }
+        putRequest.onsuccess = function() {  
+            console.log('successed');
+        }
 }
 
 function clearTaskContent() {
@@ -786,12 +784,15 @@ function submitTask() {  //将当前任务进行提交
         putRequest.onsuccess = function(event) {
             console.log('add task to file content successed');
         }
+        console.log('newContent: ', newContent);
+        console.log('fulltaskPath: ', fullTaskPath);
         var addRequest = database.transaction('path', 'readwrite').objectStore('path').put({path:fullTaskPath, content:newContent, tasksNum:1});
         addRequest.onerror = function() {
             console.log('add task failed');
         }
         addRequest.onsuccess = function() {
             console.log('add task successed');
+
             if(addNewTask) {    //对路径上的各个文件和文件夹的tasksNum进行更新
                 addTasksNum();
                 let fileHTML = currentFolderOrFile.innerHTML.split(' ');
@@ -802,6 +803,7 @@ function submitTask() {  //将当前任务进行提交
             }
             document.querySelector('#submit').setAttribute('disabled', true);
             document.querySelector('#cancel').setAttribute('disabled', true);
+            showTasks(currentFolderOrFile);
         }
     }
     document.getElementById('taskDate').readOnly = true;
@@ -843,7 +845,8 @@ function addTasksNum() {  //对当前文件以及到根目录为止路径上的�
         let currentNameNode = currentInfo.querySelector('.folderName');
         let nameHTML = currentNameNode.innerHTML.split(' ');
         console.log(nameHTML);
-        let newNum = parseInt(nameHTML[1][1]) + 1;
+        var oldNum = nameHTML[1].slice(1, -1);
+        let newNum = parseInt(oldNum) + 1;
         nameHTML[1] = '(' + newNum + ')';
         currentNameNode.innerHTML = nameHTML.join(' ');
         currentInfo = currentInfo.parentNode.parentNode.parentNode.querySelector('.folderInfo');
@@ -853,6 +856,7 @@ function addTasksNum() {  //对当前文件以及到根目录为止路径上的�
 function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值，对fullPath路径上的各个文件/文件夹进行减少tasksNum的操作，再追踪currentInfo对页面更新，用于删除和check
     console.log('fullPath: ', fullPath);
     console.log('num: ', num);
+    console.log('currentInfo: ', currentInfo);
     do {
         let tmpPath = fullPath;
         let getRequest = database.transaction('path').objectStore('path').get(tmpPath);
@@ -868,7 +872,7 @@ function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值
                 console.log('put failed');
             }
             putRequest.onsuccess = function(event) {
-
+                console.log('put successed, path: ', tmpPath, ' content: ', newContent, ' newTasksNum: ', newTasksNum);
             }
         }
         let i = fullPath.lastIndexOf('/');
@@ -876,12 +880,13 @@ function decreaseTasksNum(num, fullPath, currentInfo) {  //根据传入的num值
     } while(fullPath)
     //再对页面进行更新
     while(currentInfo.parentNode.id.toLowerCase() != 'taskbyclass') {
-        console.log(currentInfo);
+        console.log('currentInfo: ', currentInfo);
         let currentNameNode = currentInfo.querySelector('.folderName');
         let nameHTML = currentNameNode.innerHTML.split(' ');
-        let newNum = parseInt(nameHTML[1][1]) - num;
+        let oldNum = nameHTML[1].slice(1, -1);
+        let newNum = parseInt(oldNum) - num;
         nameHTML[1] = '(' + newNum + ')';
-        currentNameNode.innetHTML = nameHTML.join(' ');
+        currentNameNode.innerHTML = nameHTML.join(' ');
         currentInfo = currentInfo.parentNode.parentNode.parentNode.querySelector('.folderInfo');
     }
 }
@@ -983,7 +988,6 @@ function init() {
         }
     });
     document.getElementById('editTask').addEventListener('click', function(event) {
-        document.getElementById('taskDate').readOnly = false;
         document.getElementById('taskTextContent').readOnly = false;
         document.getElementById('submit').removeAttribute('disabled');
         document.getElementById('cancel').removeAttribute('disabled');
