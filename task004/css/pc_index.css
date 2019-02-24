@@ -1,0 +1,14 @@
+* {padding:0; margin:0; box-sizing:border-box; text-overflow:ellipsis;}
+a {text-decoration:none; color:#666;}
+header {max-width:1080px; width:100%; height:150px; padding:50px 10px; background-color:#05f; position:relative;}
+header>p {height:50px; color:#fff; font-size:50px; line-height:50px; width:100%; text-align:center; text-overflow:ellipsis;}
+div.back {display:none; position:absolute; left:20px; bottom:5px; color:#fff; font-size:42px;}
+div.back a {color:#fff;}
+div.back.show {display:block;}
+
+div.box {max-width:1080px;}
+div.box li {height:150px; padding:50px 20px; border-bottom:solid #ccc 2px; font-size:50px;}
+
+div.box .taskName {height:150px; padding:50px 20px; border-bottom:solid #ccc 2px; font-size:50px; color:#666;}
+div.box .taskDate {height:150px; padding:50px 20px; border-bottom:solid #ccc 2px; font-size:50px; color:#666;}
+div.box .taskContent {padding:50px 20px; font-size:50px; color:#666;}

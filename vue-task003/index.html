@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang='en'>
+    <head>   
+        <meta charset='utf-8'>
+        <title>task003</title>
+        <link href='css/index.css' type='text/css' rel='stylesheet'>
+    </head>
+    <body>
+        <div id='app'>
+            <header>
+                <h1>GTD Tools</h1>
+            </header>
+            <div class='box' v-cloak>
+                <div id='classList'>
+                    <div id='allFiles'>
+                        <div class='folderInfo closed'>
+                            <span class='folderImg'></span><span class='folderName'>全部任务</span><span class='taskNum'>  (0)</span>
+                        </div>
+                    </div>
+                    <div id='filesByClass' class='isfolder closed'>
+                        <div class='folderInfo closed'>
+                            <span class='folderImg'></span><span class='folderName'>分类列表</span>
+                        </div>
+                        <div v-for='topfolder in topFolder' class='topFolder'>
+                            <folder :folderpath = 'topfolder' :filetype='0' :layer='1'></folder>
+                        </div>
+                    </div>
+                    <div id='classListOps'>
+                        <button id='addFolder'>增加分类</button><button id='addFile'>增加文件</button>
+                    </div>
+                </div>
+                <div id='tasksInFile'>
+                    <nav id='tasksInFileNav'>
+                        <span id='showAll' class='show'>所有</span><span id='showDone'>已完成</span><span id='showUnDo'>未完成</span>
+                    </nav>
+                    <div id='tasksInFileMain'>
+                        <div v-for='taskDate of tasksByDate.keys()'>
+                            <div class='tasksByDate'>
+                                <div class='date'>{{ taskDate }}</div>
+                                <div v-for='task in tasksByDate.get(taskDate)' :done='task.done' class='singleTask'>
+                                    {{ task.name }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id='tasksInFileOps'>
+                        <button id='addTask'>新增任务</button>
+                    </div>
+                </div>
+                <div id='taskMain'>
+                    <div id='taskHeader'>
+                        <span id='taskName'>{{ taskContent.name }}</span>
+                        <span id='taskMainOps'>
+                            <img src='img/-ionicons-svg-md-checkmark-circle-outline.svg' id='checkTask'>
+                            <img src='img/-ionicons-svg-md-create.svg' id='editTask'>
+                        </span>
+                    </div>
+                    <div id='taskInfo'>任务日期:<input id='taskDate' type='text' placeholder='YYYY-MM-DD' :value='taskContent.date' readonly='true'></div>
+                    <div id='taskBox'><textarea id='taskContent' placeholder=' 任务内容' readonly='true'>{{ taskContent.content }}</textarea></div>
+                    <div id='taskOps'>
+                        <button id='submit' disabled='true'>提交</button><button id='cancel' disabled='true'>取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src='https://unpkg.com/vue/dist/vue.min.js'></script>
+        <script src='js/utils_db.js'></script>
+        <script src='js/utils.js'></script>
+        <script src='js/index.js'></script>
+        <script>
+            Vue.component('folder', {
+                name: 'folder',
+                props: ['folderpath', 'filetype', 'layer'],
+                template: `<div :class='filetype===0?"isfolder closed":"isfile"'>
+                                <template v-if='filetype===0'>
+                                    <div class='folderInfo closed' :style='"padding-left:"+folderPaddingLeft'>
+                                        <span class='folderImg'></span><span class='folderName'>{{ fileName }}
+                                        </span><span class='taskNum'></span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'>
+                                    </div>
+                                    <div class='folderContent'>
+                                        <folder v-for='file in files' :folderpath='prefolderpath+"/"+file.name' :filetype='file.type' :layer='layer+1'>
+                                        </folder>
+                                    </div>
+                                </template>
+                                <template v-if='filetype===1'>
+                                    <div class='file' :style='"padding-left:"+filePaddingLeft'><span class='fileName'>{{ fileName }}</span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'></div>
+                                </template>
+                            </div>`,
+                computed: {
+                    files: function() {
+                        return this.$root.pathData.get(this.folderpath);
+                    },
+                    prefolderpath: function() {
+                        return this.folderpath;
+                    },
+                    fileName: function() {
+                        return this.folderpath.split('/')[this.folderpath.split('/').length-1];
+                    },
+                    folderPaddingLeft: function() {
+                        return (this.layer) * 10 + 9 + 'px';
+                    },
+                    filePaddingLeft: function() {
+                        return (this.layer + 1) * 10 + 5 + 'px';
+                    }
+                }
+            });
+            var app = new Vue({
+                el: '#app',
+                data: {
+                    config: config,
+                },
+                computed: {
+                    topFolder: function() {
+                        return this.config.topFolder;
+                    },
+                    pathData: function() {
+                        return this.config.pathData;
+                    },
+                    currentFolder: function() {
+                        return this.config.currentFolder;
+                    },
+                    tasksInFile: function() {
+                        return this.config.tasksInFile;
+                    },
+                    taskContent: function() {
+                        return this.config.taskInfo;
+                    },
+                    tasksByDate: function() {
+                        return this.config.tasksByDate;
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>

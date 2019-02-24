@@ -1,0 +1,14 @@
+* {padding:0; margin:0; box-sizing:border-box; text-overflow:ellipsis;}
+a {text-decoration:none; color:#666;}
+header {max-width:1080px; width:100%; height:3.57rem; padding:1.19rem 0.9%; background-color:#05f; position:relative;}
+header>p {height:1.19rem; color:#fff; font-size:1.19rem; line-height:1.19rem; width:100%; text-align:center; text-overflow:ellipsis;}
+div.back {display:none; position:absolute; left:1.9%; bottom:0.12rem; color:#fff; font-size:1rem;}
+div.back a {color:#fff;}
+div.back.show {display:block;}
+
+div.box {max-width:1080px;}
+div.box li {height:3.57rem; padding:1.19rem 1.9%; border-bottom:solid #ccc 0.05rem; font-size:1.19rem;}
+
+div.box .taskName {height:3.57rem; padding:1.19rem 1.9%; border-bottom:solid #ccc 0.05rem; font-size:1.19rem; color:#666;}
+div.box .taskDate {height:3.57rem; padding:1.19rem 1.9%; border-bottom:solid #ccc 0.05rem; font-size:1.19rem; color:#666;}
+div.box .taskContent {padding:1.19rem 1.9%; font-size:1.19rem; color:#666;}
