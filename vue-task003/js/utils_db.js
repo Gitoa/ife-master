@@ -41,7 +41,6 @@ function initDB(name, ver, resolve, config) {
 }
 
 function readData(database, path) {  //database为目标数据库，path为完整的路径
-    console.log(database);
     return new Promise((resolve, reject) => {
         var request = database.transaction('path').objectStore('path').get(path);
         request.onerror = function(event) {
@@ -80,10 +79,10 @@ function deletePath(database, path) {  //从数据库中删除对应path
 async function updateTasksNum(database, path, num) {  //沿着path，更新tasksNum，包含path
     while(path && num!==0) {
         let data = await readData(database, path);
-        let [content, tasksNum] = data;
+        let {content, tasksNum} = data;
         tasksNum += num;
         await putData(database, path, content, tasksNum);
-        path = path.slice(0, path.lastIndexOf('/'));
+        path = path.substr(0, path.lastIndexOf('/'));
     }
 }
 
@@ -102,7 +101,7 @@ async function addData(config, path, data) {
         content.push(taskData);
         await putData(config.database, path, content, tasksNum);
         //更新路径上的tasksNum  
-        let folderPath = path.slice(0, path.lastIndexOf('/'));
+        let folderPath = path.substr(0, path.lastIndexOf('/'));
         await updateTasksNum(config.database, folderPath, 1);
     }
     else if(data.type === 1) {  //1.往数据库中插入文件信息， 2.往上级文件夹中添加文件
@@ -136,7 +135,7 @@ async function addData(config, path, data) {
     }
 }
 
-async function removeData(config, path, type){  //移除路径为path的（文件夹/文件/任务）
+async function removeData(config, path, type){  //移除路径为path的（文件夹/文件/任务),从父文件中删除此步多余了，应该在外部完成，不应该递归
     if(type === 0) {  //移除文件夹，1.递归将文件夹下文件删除， 2.将本文件夹删除， 3.从父文件夹中移除，并更新tasksNum，路径上所有文件夹都要更新
         let result = await readData(config.database, path);
         let {content, tasksNum} = result;
@@ -144,13 +143,13 @@ async function removeData(config, path, type){  //移除路径为path的（文�
             await removeData(config, path+'/'+file.name, file.type);
         }
         await deletePath(config.database, path);
-        let parentPath ,name;
+        /*let parentPath ,name;
         if(path.indexOf('/')===-1) {
             parentPath = '/';
             name = path;
         } else {
-            parentPath = path.slice(0, path.lastIndexOf('/'));
-            name = path.slice(path.lastIndexOf('/')+1);
+            parentPath = path.substr(0, path.lastIndexOf('/'));
+            name = path.substr(path.lastIndexOf('/')+1);
         }
         let parentData = await readData(config.database, parentPath);
         let {pContent, pTasksNum} = parentData;
@@ -169,8 +168,8 @@ async function removeData(config, path, type){  //移除路径为path的（文�
         }
         pTasksNum -= tasksNum;
         await putData(config.database, parentPath, pContent, pTasksNum);
-        let gpPath = parentPath.slice(0, parentPath.lastIndexOf('/'));
-        await updateTasksNum(config.database, gpPath, -tasksNum)
+        let gpPath = parentPath.substr(0, parentPath.lastIndexOf('/'));
+        await updateTasksNum(config.database, gpPath, -tasksNum)*/
     } else if(type === 1) {  //移除文件，1.递归将文件下任务删除， 2.将本文件删除， 3.从父文件夹中删除，并更新tasksNum
         let result = await readData(config.database, path);
         let {content, tasksNum} = result;
@@ -178,9 +177,9 @@ async function removeData(config, path, type){  //移除路径为path的（文�
             await removeData(config, path+'/'+task.name, task.type);
         }
         await deletePath(config.database, path);
-        let parentPath, name;
-        parentPath = path.slice(0, path.lastIndexOf('/'));
-        name = path.slice(path.lastIndexOf('/')+1);
+        /*let parentPath, name;
+        parentPath = path.substr(0, path.lastIndexOf('/'));
+        name = path.substr(path.lastIndexOf('/')+1);
         let parentData = await readData(config.database, parentPath);
         let {pContent, pTasksNum} = parentData;
         let pos = -1;
@@ -193,14 +192,14 @@ async function removeData(config, path, type){  //移除路径为path的（文�
         pContent.splice(pos, 1);
         pTasksNum -= tasksNum;
         await putData(config.database, parentPath, pContent, pTasksNum);
-        let gpPath = parentPath.slice(0, parentPath.lastIndexOf('/'));
-        await updateTasksNum(config.database, gpPath, -tasksNum);
+        let gpPath = parentPath.substr(0, parentPath.lastIndexOf('/'));
+        await updateTasksNum(config.database, gpPath, -tasksNum);*/
     } else if(type === 2) {  //移除任务， 1.将本任务删除， 2.从父文件中删除该任务，并更新tasksNum
         let result = await readData(config.database, path);
-        let {taskNum} = result;
+        let {tasksNum} = result;
         await deletePath(config.database, path);
-        let name = path.slice(path.lastIndexOf('/')+1);
-        let parentPath = path.slice(0, path.lastIndexOf('/'));
+        /*let name = path.substr(path.lastIndexOf('/')+1);
+        let parentPath = path.substr(0, path.lastIndexOf('/'));
         let parentData = await readData(config.database, parentPath);
         let {pContent, pTasksNum} = parentData;
         let pos = -1;
@@ -213,10 +212,26 @@ async function removeData(config, path, type){  //移除路径为path的（文�
         pContent.splice(pos, 1);
         pTasksNum -= tasksNum;
         await putData(config.database, parentPath, pContent, pTasksNum);
-        let gpPath = parentPath.slice(0, parentPath.lastIndexOf('/'));
-        await updateTasksNum(config.database, gpPath, -tasksNum0);
+        let gpPath = parentPath.substr(0, parentPath.lastIndexOf('/'));
+        await updateTasksNum(config.database, gpPath, -tasksNum0);*/
     }
 }
 
+async function delFromParent(database, parentPath, name, delNum) {
+    let parentData = await readData(database, parentPath);
+    let {content, tasksNum} = parentData;
+    let pos = -1;
+    for(let i=0; i<content.length; i++) {
+        if(content[i].name === name) {
+            pos = i;
+            break;
+        }
+    }
+    content.splice(pos, 1);
+    tasksNum -= delNum;
+    await putData(database, parentPath, content, tasksNum);
+    let gpPath = parentPath.substr(0, parentPath.lastIndexOf('/'));
+    await updateTasksNum(database, gpPath, -delNum);
+}
 
 

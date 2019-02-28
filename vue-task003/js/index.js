@@ -15,11 +15,14 @@ currentTaskContent = {name:'todo 1', date:'2018-02-11', content:'nothing to say'
 var currentFolder = defaultFolderPath;  //表示当前在哪个文件夹下
 var currentFile = '';  //表示当前在访问哪个文件内容
 var database;*/
+let initPathData = new Map();
+initPathData.set('/',{tasksNum:0, content:[]});
+
 var config = {
     topFolder: [],     
     database: {},
     defaultFilePath: '默认分类',
-    folderOfFiles: '',  //当前操作文件所在目录
+    folderOfFile: '',  //当前操作文件所在目录
     currentFolder: '/',  //当前访问文件夹(将在该文件夹下添加文件夹)
     addFilePath: '默认分类',    //将在该文件夹下添加文件
     currentFileName: '',//当前文件名称
@@ -32,7 +35,10 @@ var config = {
     filesInFilePath:[],  //addFilePath下的文件/文件夹名集合,需要初始化
     tasksInFile: [],     //当前文件下的所有任务名称,用来判断新增任务是否重名
     preTaskContent: '',  //未修改前任务内容
-    pathData: new Map()  
+    pathData: new Map(initPathData), //{taskNum: taskNum, content:[{},{}]}
+    updateCount: {         //用来触发更新，Vue无法绑定Map和Set
+        count: 1
+    }  
 };
 var indexedDB = window.indexedDB || window.msIndexedDB || window.webkitIndexedDb || window.mozIndexedDB;
 
@@ -42,8 +48,8 @@ function initListener() {
         await classClick(event, config);
     }, false)
     //点击了任务
-    document.querySelector('#tasksInFileMain').addEventListener('click', async function(event) {
-        await taskClick(event, config);
+    document.querySelector('#tasksInFileMain').addEventListener('click', function(event) {
+        taskClick(event, config);
     }, false)
     //添加文件夹
     document.querySelector('#addFolder').addEventListener('click', async function(event) {
@@ -73,20 +79,24 @@ function initListener() {
     }, false)
     //添加任务
     document.querySelector('#addTask').addEventListener('click', async function(event) {
-        let taskName = prompt('请输入任务名称');
-        if(taskName) {
-            if(config.tasksInFile.indexOf(taskName)!==-1) {
-                alert('名称已存在');
-            } else {
-                let taskDate = prompt('请输入日期');
-                if(isDateValid(taskDate)) {
-                    await addTask(config, taskName);
+        if(config.folderOfFile && config.pathData.has(config.folderOfFile+'/'+config.currentFileName)) {
+            let taskName = prompt('请输入任务名称');
+            if(taskName) {
+                if(config.tasksInFile.indexOf(taskName)!==-1) {
+                    alert('名称已存在');
                 } else {
-                    alert('日期格式错误')
+                    let taskDate = prompt('请输入日期');
+                    if(validDate(taskDate)) {
+                        await addTask(config, taskName, taskDate);
+                    } else {
+                        alert('日期格式错误')
+                    }
                 }
+            } else {
+                alert('请输入有效名称')
             }
         } else {
-            alert('请输入有效名称')
+            alert('请选择目标文件')
         }
     }, false)
     //提交任务
@@ -95,6 +105,9 @@ function initListener() {
         let taskDate = document.querySelector('#taskDate').value;
         let taskContent = document.querySelector('#taskContent').value;
         await submitTask(config, taskName, taskDate, taskContent);
+    }, false)
+    document.querySelector('#cancel').addEventListener('click', function(event) {
+        cancelTask(config);
     }, false)
     //确认完成
     document.querySelector('#checkTask').addEventListener('click', async function(event) {
@@ -115,14 +128,16 @@ async function initTopFolder() {
 
 window.onload = async function() {
     new Promise((resolve, reject)=> {
-        initDB('planA', 0, resolve, config);
+        initDB('planB', 0, resolve, config);
     }).then(async function() {
         await initTopFolder();
     }).then(async function() {
         for(let topfolder of config.topFolder) {
             await updatePathData(config.database, config.pathData, topfolder, 0);
         }
-        await initConfig(config);
+        initConfig(config);
+        config.updateCount.count += 1;
+        config.updateCount.count %= 100;
     }).then(function() {
         initListener()
     })

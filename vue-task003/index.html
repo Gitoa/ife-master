@@ -21,7 +21,7 @@
                         <div class='folderInfo closed'>
                             <span class='folderImg'></span><span class='folderName'>分类列表</span>
                         </div>
-                        <div v-for='topfolder in topFolder' class='topFolder'>
+                        <div v-for='topfolder in topFolder' :class='[istopfolder, {"default": topfolder==="默认分类"}]'>
                             <folder :folderpath = 'topfolder' :filetype='0' :layer='1'></folder>
                         </div>
                     </div>
@@ -37,7 +37,7 @@
                         <div v-for='taskDate of tasksByDate.keys()'>
                             <div class='tasksByDate'>
                                 <div class='date'>{{ taskDate }}</div>
-                                <div v-for='task in tasksByDate.get(taskDate)' :done='task.done' class='singleTask'>
+                                <div v-for='task in tasksByDate.get(taskDate)' :done='task.done?"true":"false"' class='singleTask'>
                                     {{ task.name }}
                                 </div>
                             </div>
@@ -50,13 +50,13 @@
                 <div id='taskMain'>
                     <div id='taskHeader'>
                         <span id='taskName'>{{ taskContent.name }}</span>
-                        <span id='taskMainOps'>
+                        <span id='taskMainOps' :class='taskContent.done===false?"undo":"done"'>
                             <img src='img/-ionicons-svg-md-checkmark-circle-outline.svg' id='checkTask'>
                             <img src='img/-ionicons-svg-md-create.svg' id='editTask'>
                         </span>
                     </div>
                     <div id='taskInfo'>任务日期:<input id='taskDate' type='text' placeholder='YYYY-MM-DD' :value='taskContent.date' readonly='true'></div>
-                    <div id='taskBox'><textarea id='taskContent' placeholder=' 任务内容' readonly='true'>{{ taskContent.content }}</textarea></div>
+                    <div id='taskBox'><textarea id='taskContent' placeholder='任务内容' readonly='true' :value='taskContent.content'></textarea></div>
                     <div id='taskOps'>
                         <button id='submit' disabled='true'>提交</button><button id='cancel' disabled='true'>取消</button>
                     </div>
@@ -75,7 +75,7 @@
                                 <template v-if='filetype===0'>
                                     <div class='folderInfo closed' :style='"padding-left:"+folderPaddingLeft'>
                                         <span class='folderImg'></span><span class='folderName'>{{ fileName }}
-                                        </span><span class='taskNum'></span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'>
+                                        </span><span class='tasksNum'>({{ tasksNum }})</span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'>
                                     </div>
                                     <div class='folderContent'>
                                         <folder v-for='file in files' :folderpath='prefolderpath+"/"+file.name' :filetype='file.type' :layer='layer+1'>
@@ -83,12 +83,16 @@
                                     </div>
                                 </template>
                                 <template v-if='filetype===1'>
-                                    <div class='file' :style='"padding-left:"+filePaddingLeft'><span class='fileName'>{{ fileName }}</span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'></div>
+                                    <div class='file' :style='"padding-left:"+filePaddingLeft'><span class='fileName'>{{ fileName }}</span><span class='tasksNum'>({{ tasksNum }})</span><img class='deleteBtn' src='img/-ionicons-svg-md-trash.svg'></div>
                                 </template>
                             </div>`,
                 computed: {
                     files: function() {
-                        return this.$root.pathData.get(this.folderpath);
+                        let n = this.$root.updateCount.count
+                        if(this.$root.pathData.get(this.folderpath)) {
+                            return this.$root.pathData.get(this.folderpath).content;
+                        }
+                        return [];
                     },
                     prefolderpath: function() {
                         return this.folderpath;
@@ -101,32 +105,42 @@
                     },
                     filePaddingLeft: function() {
                         return (this.layer + 1) * 10 + 5 + 'px';
+                    },
+                    tasksNum: function() {
+                        let n = this.$root.updateCount.count
+                        if(this.$root.pathData.get(this.folderpath)) {
+                            return this.$root.pathData.get(this.folderpath).tasksNum;
+                        }
+                        return [];
                     }
                 }
             });
             var app = new Vue({
                 el: '#app',
                 data: {
-                    config: config,
+                    appConfig: config,
+                    pathData: config.pathData,
+                    updateCount: config.updateCount,
+                    istopfolder: "topFolder"
                 },
                 computed: {
                     topFolder: function() {
-                        return this.config.topFolder;
+                        return this.appConfig.topFolder;
                     },
                     pathData: function() {
-                        return this.config.pathData;
+                        return this.appConfig.pathData;
                     },
                     currentFolder: function() {
-                        return this.config.currentFolder;
+                        return this.appConfig.currentFolder;
                     },
                     tasksInFile: function() {
-                        return this.config.tasksInFile;
+                        return this.appConfig.tasksInFile;
                     },
                     taskContent: function() {
-                        return this.config.taskInfo;
+                        return this.appConfig.taskInfo;
                     },
                     tasksByDate: function() {
-                        return this.config.tasksByDate;
+                        return this.appConfig.tasksByDate;
                     }
                 }
             })
